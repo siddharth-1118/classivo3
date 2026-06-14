@@ -38,6 +38,7 @@ export default function SettingsPage({
   const { userData, refreshData, isUpdating } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/download/app-debug.apk";
 
   // Diagnostic states
   const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");
@@ -235,7 +236,19 @@ export default function SettingsPage({
                 </div>
               </div>
 
-
+              {/* Get Android App */}
+              <div 
+                onClick={() => { Haptics.selection(); window.location.href = apkUrl; }}
+                className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <div className="p-2 bg-cyan-400/10 w-fit rounded-lg group-hover:bg-cyan-400/20 transition-colors text-cyan-300">
+                  <span className="material-symbols-outlined">android</span>
+                </div>
+                <div>
+                  <h4 className="font-title-md text-[16px] font-black text-on-surface">Get Android App</h4>
+                  <p className="font-body-sm text-[12px] text-on-surface-variant font-medium mt-0.5">Download APK</p>
+                </div>
+              </div>
 
             </div>
           </section>

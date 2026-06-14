@@ -56,6 +56,30 @@ export default function Dashboard({
   const router = useRouter();
   const { customDisplayName } = useApp();
 
+  // State for dismissible APK banner
+  const [showApkBanner, setShowApkBanner] = useState(false);
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/download/app-debug.apk";
+
+  useEffect(() => {
+    const isNative = typeof window !== "undefined" && !!(window as any).Capacitor;
+    const dismissed = localStorage.getItem("classivo_apk_banner_dismissed") === "true";
+    if (!isNative && !dismissed) {
+      setShowApkBanner(true);
+    }
+  }, []);
+
+  const handleDismissBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.light();
+    localStorage.setItem("classivo_apk_banner_dismissed", "true");
+    setShowApkBanner(false);
+  };
+
+  const handleDownloadApk = () => {
+    Haptics.heavy();
+    window.location.href = apkUrl;
+  };
+
   const {
     pullY,
     isRefreshing: isLocalRefreshing,
@@ -283,6 +307,48 @@ export default function Dashboard({
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-red-400/50 text-[18px] shrink-0">chevron_right</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── APK DOWNLOAD BANNER ── */}
+          {showApkBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mx-5 mb-4 rounded-3xl p-4 flex items-center justify-between relative overflow-hidden transition-all duration-300"
+              style={{
+                background: "linear-gradient(135deg, rgba(6,182,212,0.12) 0%, rgba(129,140,248,0.12) 100%)",
+                border: "1px solid rgba(6,182,212,0.25)",
+              }}
+            >
+              <div className="flex items-center gap-3.5 flex-1 pr-4 cursor-pointer" onClick={handleDownloadApk}>
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(6,182,212,0.2)" }}>
+                  <span className="material-symbols-outlined text-[22px] text-cyan-300">android</span>
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-black text-white lowercase tracking-tight leading-none mb-1">
+                    install classivo for android
+                  </h4>
+                  <p className="text-[11px] text-white/50 font-semibold leading-tight">
+                    get faster updates and offline timetable access
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadApk}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white text-black hover:bg-white/90 active:scale-95 transition-all"
+                >
+                  install
+                </button>
+                <button
+                  onClick={handleDismissBanner}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/5 border border-white/5 text-white/40 hover:text-white/60 active:scale-90 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
               </div>
             </motion.div>
           )}
