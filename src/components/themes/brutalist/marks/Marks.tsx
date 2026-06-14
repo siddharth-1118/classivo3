@@ -230,11 +230,11 @@ const MarksPage = ({ data }: { data: AcademiaData }) => {
 
         <div className="my-auto flex flex-col justify-center">
           <div className="flex items-baseline gap-6">
-            <span className={`text-[20vw] md:text-[8rem] leading-[0.8] font-black tracking-wide transition-colors duration-300 ${themeColorClass}`} style={{ fontFamily: "Urbanosta" }}>
+            <span className={`text-[20vw] md:text-[8rem] leading-[0.8] font-black tracking-wide transition-colors duration-300 ${themeColorClass}`} >
               <ScoreCounter value={activeSubject.isNA ? "0" : activeSubject.score} />
             </span>
             <div className="flex items-baseline gap-3">
-              <span className={`text-xl font-bold opacity-40 ${themeColorClass}`} style={{ fontFamily: "Urbanosta" }}>
+              <span className={`text-xl font-bold opacity-40 ${themeColorClass}`} >
                 {activeSubject.isNA ? "%" : `/ ${activeSubject.max}`}
               </span>
               {!activeSubject.isNA && (
@@ -259,9 +259,9 @@ const MarksPage = ({ data }: { data: AcademiaData }) => {
                 const boxColor = isHigh ? "bg-[#ceff1c] text-black" : isLow ? "bg-[#ff003c] text-white" : "bg-white/10 text-white";
                 return (
                   <div key={idx} className={`px-3 py-2 rounded-xl border border-white/5 flex flex-col items-center justify-center min-w-[70px] ${boxColor}`}>
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1" style={{ fontFamily: "Aonic" }}>{box.title}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1" >{box.title}</span>
                     <div className="flex items-baseline gap-0.5">
-                      <span className="text-lg font-black leading-none" style={{ fontFamily: "Urbanosta" }}>{Number.isInteger(box.got) ? box.got : box.got.toFixed(1)}</span>
+                      <span className="text-lg font-black leading-none" >{Number.isInteger(box.got) ? box.got : box.got.toFixed(1)}</span>
                       <span className="text-[10px] font-bold opacity-40">/{box.max}</span>
                     </div>
                   </div>
@@ -269,7 +269,7 @@ const MarksPage = ({ data }: { data: AcademiaData }) => {
               })}
             </motion.div>
           </AnimatePresence>
-          <h3 className="text-xl md:text-2xl font-bold lowercase leading-tight mb-4 line-clamp-1 text-white" style={{ fontFamily: "Aonic" }}>{activeSubject.title?.toLowerCase()}</h3>
+          <h3 className="text-xl md:text-2xl font-bold lowercase leading-tight mb-4 line-clamp-1 text-white" >{activeSubject.title?.toLowerCase()}</h3>
           <div className="w-full h-[4px] bg-white/10 mb-2 relative overflow-y-auto rounded-full">
             <motion.div className={`h-full transition-colors duration-300 ${barColorClass}`} initial={{ width: 0 }} animate={{ width: activeSubject.isNA ? "0%" : `${activeSubject.percentage}%` }} transition={{ duration: 0.8, ease: "circOut" }} />
           </div>
@@ -291,10 +291,10 @@ const MarksPage = ({ data }: { data: AcademiaData }) => {
               <div key={subject.id} ref={(el) => { itemRefs.current[index] = el; }} onClick={() => { if(!predictMode) itemRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" }); else setSelectedId(subject.id); }} className={`group relative w-full p-4 rounded-2xl cursor-pointer transition-all duration-300 border snap-start scroll-mt-12 shrink-0 ${isSelected ? "bg-white shadow-xl scale-[1.02] border-black/5 opacity-100 z-10" : "bg-transparent border-transparent opacity-40 grayscale"}`}>
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex flex-col min-w-0 max-w-[70%]">
-                    <h4 className="text-lg font-bold lowercase truncate" style={{ fontFamily: "Aonic" }}>{subject.title?.toLowerCase()}</h4>
+                    <h4 className="text-lg font-bold lowercase truncate" >{subject.title?.toLowerCase()}</h4>
                     <span className="text-[10px] font-mono text-black/40 lowercase tracking-tight">{subject.credits} credits</span>
                   </div>
-                  {!subject.isNA && <span className="text-2xl font-black" style={{ fontFamily: "Urbanosta" }}>{Math.floor(subject.percentage)}%</span>}
+                  {!subject.isNA && <span className="text-2xl font-black" >{Math.floor(subject.percentage)}%</span>}
                 </div>
                 <div className="w-full h-[2px] bg-[#050505]/5 relative mb-3 rounded-full overflow-y-auto">
                   <div className={`h-full absolute top-0 left-0 transition-colors ${subject.status === "cooked" ? "bg-[#ff003c]" : subject.status === "danger" ? "bg-[#ffb800]" : "bg-[#050505]"}`} style={{ width: subject.isNA ? "0%" : `${subject.percentage}%` }} />
@@ -327,8 +327,8 @@ const MarksPage = ({ data }: { data: AcademiaData }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.4 }}
             >
-              <h1 className="text-6xl font-black lowercase tracking-tighter text-white mb-2" style={{ fontFamily: "Aonic" }}>marks</h1>
-              <div className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%] flex items-center gap-2" style={{ fontFamily: "Aonic" }}>
+              <h1 className="text-6xl font-black lowercase tracking-tighter text-white mb-2" >marks</h1>
+              <div className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%] flex items-center gap-2" >
                 <UserAvatar seed={profileSeed} className="w-6 h-6 shrink-0" />
                 {currentRoast}
               </div>

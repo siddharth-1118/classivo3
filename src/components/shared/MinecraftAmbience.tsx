@@ -83,8 +83,7 @@ export default function MinecraftAmbience() {
           [data-theme="steve"] html {
             background-color: #F7F7F7 !important;
           }
-        `,
-        }}
+        ` }}
       />
 
       <AnimatePresence mode="wait">
@@ -133,12 +132,10 @@ export default function MinecraftAmbience() {
                       y: p.y,
                       x: p.x,
                       opacity: [0, 1, 0],
-                      scale: [0.5, 1.5, 0.2],
-                    }}
+                      scale: [0.5, 1.5, 0.2] }}
                     transition={{
                       repeat: Infinity,
-                      duration: p.duration,
-                    }}
+                      duration: p.duration }}
                     className="absolute w-2 h-2 bg-[#ff00ff] shadow-[0_0_8px_#ff00ff]"
                   />
                 ))}

@@ -1,19 +1,27 @@
 "use client";
 import React, { useState, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
-
-export const runtime = "edge";
-
-import { useTheme } from "@/context/ThemeContext";
-import DashboardMinimalist from "@/components/themes/minimalist/dashboard/Dashboard";
-import DashboardBrutalist from "@/components/themes/brutalist/dashboard/Dashboard";
+import dynamic from "next/dynamic";
 import { useAcademiaData } from "@/hooks/useAcademiaData";
 import { useAppLayout } from "@/context/AppLayoutContext";
 import { EncryptionUtils } from "@/utils/shared/Encryption";
 
+const DashboardMinimalist = dynamic(() => import("@/components/themes/minimalist/dashboard/Dashboard"), { ssr: false });
+
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
   const { userData, customDisplayName, refreshData, isUpdating } = useApp();
-  const { uiStyle } = useTheme();
   const { onOpenSettings } = useAppLayout();
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const academia = useAcademiaData(userData as any);
@@ -24,26 +32,6 @@ export default function DashboardPage() {
       await refreshData(creds, userData);
     }
   }, [userData, refreshData]);
-
-  if (uiStyle === "brutalist") {
-    return (
-      <DashboardBrutalist 
-        onProfileClick={onOpenSettings}
-        profile={userData?.profile}
-        attendance={userData?.attendance}
-        displayName={customDisplayName || userData?.profile?.name}
-        timeStatus={academia.timeStatus}
-        calendarData={academia.calendarData}
-        upcomingAlerts={[]}
-        overallAttendance={academia.overallAttendance}
-        criticalAttendance={academia.criticalAttendance}
-        overallMarks={(academia as any).overallMarks || 0}
-        recentMarks={(academia as any).recentMarks || []}
-        onRefresh={handleRefresh}
-        isRefreshing={isUpdating}
-      />
-    );
-  }
 
   return (
     <DashboardMinimalist 

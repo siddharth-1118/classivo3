@@ -214,18 +214,18 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                 <div className="space-y-2">
                   <h2 
                     className="text-2xl font-black lowercase tracking-tighter text-[#FF4D4D]"
-                    style={{ fontFamily: 'var(--font-montserrat)' }}
+                    
                   >
                     Auth Failed
                   </h2>
-                  <p className="text-sm font-bold uppercase tracking-widest text-white/40" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                  <p className="text-sm font-bold uppercase tracking-widest text-white/40" >
                     {loginError}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4 pt-4">
-                <p className="text-[10px] text-center text-white/30 uppercase tracking-[0.2em] leading-relaxed font-bold" style={{ fontFamily: 'var(--font-montserrat)', whiteSpace: 'pre-line' }}>
+                <p className="text-[10px] text-center text-white/30 uppercase tracking-[0.2em] leading-relaxed font-bold" style={{ whiteSpace: 'pre-line' }}>
                   blud your netid or{"\n"}password is wrong :/
                 </p>
                 
@@ -236,7 +236,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                     window.location.href = "/login";
                   }}
                   className="w-full py-4 bg-[#FF4D4D] text-[#111111] font-black lowercase text-xl tracking-tighter hover:brightness-110 transition-all flex items-center justify-center gap-2 rounded-2xl pointer-events-auto"
-                  style={{ fontFamily: 'var(--font-montserrat)' }}
+                  
                 >
                   <ArrowLeft size={18} /> go back to login
                 </button>
@@ -285,7 +285,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                         <motion.p
                           variants={itemVariants}
                           className="text-xl font-bold tracking-tight opacity-80"
-                          style={{ fontFamily: "var(--font-montserrat)", whiteSpace: "pre-line" }}
+                          style={{ whiteSpace: "pre-line" }}
                         >
                           {slides[step].description}
                         </motion.p>
@@ -321,17 +321,16 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                   initial={{ opacity: 0, filter: "blur(5px)" }}
                   animate={{
                     opacity: introStage === 1 ? 0.6 : 0,
-                    filter: introStage === 1 ? "blur(0px)" : "blur(5px)",
-                  }}
+                    filter: introStage === 1 ? "blur(0px)" : "blur(5px)" }}
                   className="text-[10px] font-bold uppercase tracking-[0.4em] mb-4 block"
-                  style={{ fontFamily: "var(--font-montserrat)" }}
+                  
                 >
                   {slides[step].subtitle}
                 </motion.span>
                 <motion.h1
                   layout
                   className="font-black lowercase text-[5.5rem] md:text-[7rem] leading-[0.8] tracking-tighter"
-                  style={{ fontFamily: "var(--font-urbanosta)" }}
+                  
                 >
                   {typeof slides[step].title === "string" ? (
                     <motion.span
@@ -454,7 +453,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
 
 
                           <p className="text-xs opacity-80 leading-relaxed max-w-[300px]">
-                            ratio'd was basically built for fun. thats it. thats the lore. ")
+                            classivo was basically built for fun. thats it. thats the lore. ")
                         </p>
                       </div>
 
@@ -476,8 +475,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                           opacity: 1, 
                           y: 0, 
                           rotate: 5,
-                          scale: [1, 1.05, 1],
-                        }}
+                          scale: [1, 1.05, 1] }}
                         transition={{
                           scale: {
                             repeat: Infinity,
@@ -508,7 +506,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
                 <motion.h1
                   variants={itemVariants}
                   className={slides[step].titleClass}
-                  style={{ whiteSpace: "pre-line", fontFamily: "var(--font-montserrat)" }}
+                  style={{ whiteSpace: "pre-line" }}
                 >
                   {typeof slides[step].title === "string"
                     ? slides[step].title
@@ -532,13 +530,12 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
               initial={{ opacity: 0, filter: "blur(10px)" }}
               animate={{
                 opacity: step === 0 ? 0 : 1,
-                filter: step === 0 ? "blur(10px)" : "blur(0px)",
-              }}
+                filter: step === 0 ? "blur(10px)" : "blur(0px)" }}
               exit={{ opacity: 0, filter: "blur(10px)" }}
-              className={`absolute bottom-8 left-8 flex items-center h-12 lowercase text-2xl tracking-tighter z-[1000] pointer-events-none ${slides[step].text}`}
-              style={{ fontFamily: "var(--font-urbanosta)" }}
+              className={`absolute bottom-8 left-8 flex items-center h-12 lowercase text-2xl tracking-tighter z-[1000] pointer-events-none ${slides[step].text} font-title-md`}
+              
             >
-              ratio'd
+              classivo
             </motion.div>
 
             <motion.div
@@ -666,28 +663,26 @@ export default function OnboardingContainer({
     return null;
   }
 
-  if (isPWA || forceOnboarding) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="fixed inset-0"
-      >
-        <PwaSlideshow onComplete={onFinish || onComplete || onDevBypass} />
-      </motion.div>
-    );
-  }
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="fixed inset-0"
+    >
+      <PwaSlideshow onComplete={onFinish || onComplete || onDevBypass} />
+    </motion.div>
+  );
 
   return (
     <div className="h-[100dvh] w-full flex flex-col justify-between p-8 pb-16 md:p-16 md:px-24 bg-[#0c30ff] overflow-hidden text-white relative">
       <header className="flex justify-between items-start w-full relative">
         <div className="relative inline-block">
           <h1
-            className="text-5xl md:text-7xl lowercase tracking-tighter text-[#ceff1c]"
-            style={{ fontFamily: "var(--font-urbanosta)" }}
+            className="text-5xl md:text-7xl lowercase tracking-tighter text-[#ceff1c] font-title-md"
+            
           >
-            ratio'd
+            classivo
           </h1>
           {isDev && (
             <button
@@ -728,10 +723,10 @@ export default function OnboardingContainer({
                 </div>
 
                 <h2
-                  className="text-4xl md:text-[3.5rem] text-white tracking-tight leading-[1.05]"
-                  style={{ fontFamily: "var(--font-aonic)" }}
+                  className="text-4xl md:text-[3.5rem] text-white tracking-tight leading-[1.05] font-display-lg"
+                  
                 >
-                  ratio'd is currently <br /> mobile-only.
+                  classivo is currently <br /> mobile-only.
                 </h2>
 
                 <p className="text-white/60 font-mono text-[11px] md:text-xs leading-relaxed max-w-md mt-2">
@@ -748,7 +743,7 @@ export default function OnboardingContainer({
                   type="email"
                   className="w-full bg-transparent py-2 text-3xl md:text-5xl text-white outline-none placeholder:text-white/20 transition-colors"
                   placeholder="email@address.com"
-                  style={{ fontFamily: "var(--font-aonic)" }}
+                  
                 />
                 <button className="absolute right-0 bottom-4 text-white hover:text-[#ceff1c] transition-colors">
                   <ArrowRight size={24} />
@@ -771,10 +766,10 @@ export default function OnboardingContainer({
                   browser view lowkenuinely too smoll :/
                 </p>
                 <h2
-                  className="text-5xl lowercase leading-tight"
-                  style={{ fontFamily: "var(--font-aonic)" }}
+                  className="text-5xl lowercase leading-tight font-display-lg"
+                  
                 >
-                  drop ratio'd on your home screen.
+                  drop classivo on your home screen.
                 </h2>
               </div>
 
@@ -785,7 +780,7 @@ export default function OnboardingContainer({
                 >
                   <span
                     className="text-5xl lowercase group-hover:text-[#ceff1c] transition-colors"
-                    style={{ fontFamily: "var(--font-aonic)" }}
+                    
                   >
                     Install App
                   </span>

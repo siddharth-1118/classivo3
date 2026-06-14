@@ -39,13 +39,50 @@ export const getAcronym = (name: string) => {
 
 export const buildCourseMap = (data: any) => {
   const map: any = {};
-  if (data?.attendance) {
-    data.attendance.forEach((sub: any) => {
-      if (sub.code && sub.title) {
-        map[sub.code.trim()] = sub.title;
+  
+  // 1. Populate from courses object
+  if (data?.courses) {
+    Object.values(data.courses).forEach((course: any) => {
+      if (course && typeof course === 'object') {
+        const code = course.code || course.courseCode;
+        const name = course.name || course.courseTitle || course.title;
+        if (code && name) {
+          map[code.trim()] = name.trim();
+        }
       }
     });
   }
+  
+  // 2. Populate from schedule/timetable
+  const schedules = [data?.effectiveSchedule, data?.timetable, data?.schedule, data?.time_table].filter(Boolean);
+  schedules.forEach((sched: any) => {
+    if (typeof sched === 'object') {
+      Object.values(sched).forEach((daySchedule: any) => {
+        if (daySchedule && typeof daySchedule === 'object') {
+          Object.values(daySchedule).forEach((slot: any) => {
+            if (slot && typeof slot === 'object') {
+              const code = slot.courseCode || slot.course || slot.code;
+              const name = slot.courseTitle || slot.name || slot.title || slot.course;
+              if (code && name && name !== code) {
+                const cleanCode = code.split("-")[0].trim();
+                map[cleanCode] = name.trim();
+              }
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // 3. Populate from attendance
+  if (data?.attendance) {
+    data.attendance.forEach((sub: any) => {
+      if (sub.code && sub.title) {
+        map[sub.code.trim()] = sub.title.trim();
+      }
+    });
+  }
+  
   return map;
 };
 

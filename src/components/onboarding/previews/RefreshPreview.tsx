@@ -36,7 +36,7 @@ export default function RefreshPreview() {
               initial={{ y: 5, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               className={`text-4xl font-black tracking-tighter ${attendance >= 75 ? "text-[#004643]" : "text-[#FB3640]"}`}
-              style={{ fontFamily: "var(--font-montserrat)" }}
+              
             >
               {attendance}%
             </motion.h3>

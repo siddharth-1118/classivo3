@@ -25,9 +25,9 @@ export default function PrivacyProtocol({
           <div className="flex justify-between items-center mb-12">
             <span
               className="text-2xl font-black lowercase tracking-tighter"
-              style={{ fontFamily: "var(--font-urbanosta)" }}
+              
             >
-              ratio'd
+              classivo
             </span>
             <button
               onClick={onClose}
@@ -39,7 +39,7 @@ export default function PrivacyProtocol({
 
           <h2
             className="text-[2.5rem] font-black lowercase tracking-tighter leading-[0.9] mb-8"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             how it
             <br />
@@ -50,13 +50,13 @@ export default function PrivacyProtocol({
             <div className="space-y-3">
               <h3
                 className="font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3 text-white"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 <Lock size={18} className="text-white/60" /> AES-256 Encryption
               </h3>
               <p
                 className="text-xs opacity-70 leading-relaxed font-bold"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 When you log in, we use window.crypto to generate a unique
                 32-byte key locally on your device. Your Academia credentials
@@ -68,14 +68,14 @@ export default function PrivacyProtocol({
             <div className="space-y-3">
               <h3
                 className="font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3 text-white"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 <ServerOff size={18} className="text-white/60" /> Stateless
                 Proxy
               </h3>
               <p
                 className="text-xs opacity-70 leading-relaxed font-bold"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 We don't have a user database. Our FastAPI backend acts strictly
                 as a stateless proxy scraper. It takes your decrypted
@@ -87,14 +87,14 @@ export default function PrivacyProtocol({
             <div className="space-y-3">
               <h3
                 className="font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3 text-white"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 <Database size={18} className="text-white/60" /> Local-First
                 Caching
               </h3>
               <p
                 className="text-xs opacity-70 leading-relaxed font-bold"
-                style={{ fontFamily: "var(--font-montserrat)" }}
+                
               >
                 All your parsed data (attendance, marks, schedule) is cached in
                 your browser's localStorage for offline access. Deleting the app
@@ -108,9 +108,7 @@ export default function PrivacyProtocol({
             <p
               className="text-[9px] font-bold lowercase tracking-widest leading-relaxed"
               style={{
-                fontFamily: "var(--font-montserrat)",
-                whiteSpace: "pre-line",
-              }}
+                whiteSpace: "pre-line" }}
             >
               we built this for fun.{"\n"} we don't own the data, and we don't
               own the portal.{"\n"}use it at your own risk, gng.
@@ -120,7 +118,7 @@ export default function PrivacyProtocol({
           <button
             onClick={onClose}
             className="mt-4 w-full py-5 bg-[#F0EDE5] text-[#111111] font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-[0.98] transition-transform"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             understood
           </button>

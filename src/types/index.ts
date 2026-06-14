@@ -13,6 +13,7 @@ export interface StudentProfile {
   section?: string;
   photo?: string;
   cgpa?: string;
+  email?: string;
 }
 
 export interface AttendanceRecord {
@@ -104,6 +105,7 @@ export interface Course {
 }
 
 export interface AcademiaData {
+  isAdmin?: boolean;
   profile: StudentProfile;
   attendance: AttendanceRecord[];
   schedule: ScheduleData;

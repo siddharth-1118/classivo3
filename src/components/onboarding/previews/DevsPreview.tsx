@@ -36,7 +36,7 @@ const DevCard = ({
       >
         <span
           className="font-black uppercase tracking-tighter text-sm z-10 leading-none"
-          style={{ fontFamily: "var(--font-montserrat)" }}
+          
         >
           {name}
         </span>
@@ -122,7 +122,7 @@ export default function DevsPreview() {
         >
           <p
             className="text-[7px] font-bold lowercase tracking-widest leading-relaxed"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             special thanks to the goat aka the <a 
               href="https://github.com/Rahuletto/ClassPro" 
@@ -142,7 +142,7 @@ export default function DevsPreview() {
         >
           <p
             className="text-[7px] font-bold lowercase tracking-widest leading-relaxed"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             and our friends who helped us{"\n"}through the dev period{" "}
             <span className="lowercase text-[12px]">UwU</span>

@@ -50,13 +50,13 @@ export default function UpdateHistory({ isOpen, onClose }: { isOpen: boolean; on
             </button>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-theme-surface border border-theme-border">
               <Clock size={14} className="text-theme-highlight" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text" style={{ fontFamily: "var(--font-montserrat)" }}>history</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-theme-text" >history</span>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto no-scrollbar px-8 pb-32">
             <div className="mb-12">
-              <h1 className="text-[5rem] font-black tracking-tighter text-theme-text leading-[0.8] lowercase" style={{ fontFamily: "var(--font-montserrat)" }}>
+              <h1 className="text-[5rem] font-black tracking-tighter text-theme-text leading-[0.8] lowercase" >
                 updates<br/>log
               </h1>
             </div>
@@ -66,7 +66,7 @@ export default function UpdateHistory({ isOpen, onClose }: { isOpen: boolean; on
                 {sections.map(section => (
                   <div key={section} className="flex flex-col gap-8">
                     <div className="flex items-center gap-4">
-                      <span className="text-[11px] font-black uppercase tracking-[0.3em] text-theme-highlight shrink-0" style={{ fontFamily: "var(--font-montserrat)" }}>{section}</span>
+                      <span className="text-[11px] font-black uppercase tracking-[0.3em] text-theme-highlight shrink-0" >{section}</span>
                       <div className="flex-1 h-[1.5px] bg-theme-text/10 rounded-full" />
                     </div>
 
@@ -88,18 +88,18 @@ export default function UpdateHistory({ isOpen, onClose }: { isOpen: boolean; on
                               return (
                                 <div key={`att-${i}`} className="border-[1.5px] border-theme-border rounded-[28px] p-6 bg-theme-surface/30">
                                   <div className="flex items-center justify-between mb-4">
-                                    <span className="text-[18px] font-black text-theme-text lowercase truncate max-w-[70%]" style={{ fontFamily: "var(--font-montserrat)" }}>{change.course}</span>
-                                    <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-theme-border bg-theme-text/5 opacity-60" style={{ fontFamily: "var(--font-afacad)" }}>attendance</span>
+                                    <span className="text-[18px] font-black text-theme-text lowercase truncate max-w-[70%]" >{change.course}</span>
+                                    <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-theme-border bg-theme-text/5 opacity-60" >attendance</span>
                                   </div>
                                   <div className="flex items-center justify-between">
                                     <div className="flex flex-col">
-                                      <span className="text-[2.2rem] font-black text-theme-text opacity-40 leading-none tracking-tighter" style={{ fontFamily: "var(--font-montserrat)" }}>{change.oldMargin}</span>
-                                      <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1" style={{ fontFamily: "var(--font-afacad)" }}>{oldLabel}</span>
+                                      <span className="text-[2.2rem] font-black text-theme-text opacity-40 leading-none tracking-tighter" >{change.oldMargin}</span>
+                                      <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1" >{oldLabel}</span>
                                     </div>
                                     <ArrowRight size={32} className="text-theme-highlight opacity-40" />
                                     <div className="flex flex-col items-end text-right">
-                                      <span className={`text-[3.5rem] font-black leading-none tracking-tighter ${isDegraded ? 'text-theme-secondary' : 'text-theme-highlight'}`} style={{ fontFamily: "var(--font-montserrat)" }}>{change.newMargin}</span>
-                                      <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDegraded ? 'text-theme-secondary/60' : 'text-theme-highlight/60'}`} style={{ fontFamily: "var(--font-afacad)" }}>{newLabel} • {change.newPercent.toFixed(0)}%</span>
+                                      <span className={`text-[3.5rem] font-black leading-none tracking-tighter ${isDegraded ? 'text-theme-secondary' : 'text-theme-highlight'}`} >{change.newMargin}</span>
+                                      <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDegraded ? 'text-theme-secondary/60' : 'text-theme-highlight/60'}`} >{newLabel} • {change.newPercent.toFixed(0)}%</span>
                                     </div>
                                   </div>
                                 </div>
@@ -109,15 +109,15 @@ export default function UpdateHistory({ isOpen, onClose }: { isOpen: boolean; on
                             {item.diff.newMarks.map((mark: any, i: number) => (
                               <div key={`mark-${i}`} className="border-[1.5px] border-theme-border rounded-[28px] p-6 bg-theme-surface/30">
                                 <div className="flex items-center justify-between mb-4">
-                                  <span className="text-[18px] font-black text-theme-text lowercase truncate max-w-[70%]" style={{ fontFamily: "var(--font-montserrat)" }}>{mark.course}</span>
-                                  <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-theme-border bg-theme-text/5 opacity-60" style={{ fontFamily: "var(--font-afacad)" }}>marks</span>
+                                  <span className="text-[18px] font-black text-theme-text lowercase truncate max-w-[70%]" >{mark.course}</span>
+                                  <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-theme-border bg-theme-text/5 opacity-60" >marks</span>
                                 </div>
                                 <div className="flex items-end justify-between">
                                   <div className="flex flex-col">
-                                    <span className="text-[3.5rem] font-black text-theme-text leading-none tracking-tighter" style={{ fontFamily: "var(--font-montserrat)" }}>{mark.score}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1" style={{ fontFamily: "var(--font-afacad)" }}>/{mark.max} • {mark.test}</span>
+                                    <span className="text-[3.5rem] font-black text-theme-text leading-none tracking-tighter" >{mark.score}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1" >/{mark.max} • {mark.test}</span>
                                   </div>
-                                  <div className="px-4 py-2 rounded-2xl bg-theme-highlight text-theme-bg text-[10px] font-black uppercase tracking-widest" style={{ fontFamily: "var(--font-montserrat)" }}>
+                                  <div className="px-4 py-2 rounded-2xl bg-theme-highlight text-theme-bg text-[10px] font-black uppercase tracking-widest" >
                                     published
                                   </div>
                                 </div>
@@ -133,7 +133,7 @@ export default function UpdateHistory({ isOpen, onClose }: { isOpen: boolean; on
             ) : (
               <div className="flex flex-col items-center justify-center py-20 opacity-20">
                 <Clock size={48} strokeWidth={1} />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] mt-6" style={{ fontFamily: "var(--font-montserrat)" }}>no history found</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] mt-6" >no history found</span>
               </div>
             )}
           </div>

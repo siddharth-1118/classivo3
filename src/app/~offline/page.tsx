@@ -13,7 +13,7 @@ export default function OfflinePage() {
       >
         <WifiOff size={40} />
       </motion.div>
-      <h1 className="text-4xl font-black lowercase tracking-tighter mb-2" style={{ fontFamily: "Aonic, sans-serif" }}>
+      <h1 className="text-4xl font-black lowercase tracking-tighter mb-2" >
         offline
       </h1>
       <p className="text-white/60 text-sm max-w-xs uppercase tracking-widest font-bold leading-relaxed">

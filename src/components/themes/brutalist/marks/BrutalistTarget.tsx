@@ -77,7 +77,7 @@ export default function BrutalistTarget({
               <span className="text-[32px] font-black uppercase tracking-[0.15em] text-white">
                 TARGET
               </span>
-              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-[#ceff1c] mt-1.5" style={{ fontFamily: "Aonic" }}>
+              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-[#ceff1c] mt-1.5" >
                 sgpa prediction
               </span>
             </div>
@@ -88,52 +88,52 @@ export default function BrutalistTarget({
 
           <div className="flex flex-col flex-1 justify-between mt-5 w-full overflow-y-auto no-scrollbar pb-4">
             <div className="w-full bg-white/5 border border-white/10 rounded-[16px] px-4 py-3.5 flex items-center gap-3 shrink-0">
-              <span className="text-[16px] font-black uppercase tracking-widest text-white shrink-0" style={{ fontFamily: "Montserrat" }}>
+              <span className="text-[16px] font-black uppercase tracking-widest text-white shrink-0" >
                 {activePredSub.code}
               </span>
               <div className="w-[1.5px] h-4 bg-white/10 shrink-0" />
-              <span className="text-[13px] font-medium lowercase tracking-wide text-white/60 truncate min-w-0" style={{ fontFamily: "Aonic" }}>
+              <span className="text-[13px] font-medium lowercase tracking-wide text-white/60 truncate min-w-0" >
                 {activePredSub.title}
               </span>
             </div>
 
             <div className="flex flex-col items-center justify-center shrink-0">
-              <span className="text-[11px] font-bold lowercase tracking-[0.2em] text-white/40 mb-1" style={{ fontFamily: "Aonic" }}>
+              <span className="text-[11px] font-bold lowercase tracking-[0.2em] text-white/40 mb-1" >
                 predicted sgpa
               </span>
-              <span className={`text-[4.5rem] leading-[0.9] font-black tracking-tighter transition-colors duration-300 ${gpaColor}`} style={{ fontFamily: "Montserrat" }}>
+              <span className={`text-[4.5rem] leading-[0.9] font-black tracking-tighter transition-colors duration-300 ${gpaColor}`} >
                 {predictedGpa}
               </span>
             </div>
 
             <div className="flex flex-col items-center justify-center shrink-0">
-              <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1" style={{ fontFamily: "Aonic" }}>
+              <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1" >
                 sem marks needed
               </span>
               <div className="flex items-baseline gap-1">
-                <span className={`leading-[0.85] font-black tracking-tighter text-center ${isCooked ? "text-[4rem] text-[#ff003c]" : "text-[5rem] text-[#ceff1c]"}`} style={{ fontFamily: "Montserrat" }}>
+                <span className={`leading-[0.85] font-black tracking-tighter text-center ${isCooked ? "text-[4rem] text-[#ff003c]" : "text-[5rem] text-[#ceff1c]"}`} >
                   {isCooked ? "cooked." : semRequiredOutOfMax <= 0 ? "0" : semRequiredOutOfMax}
                 </span>
                 {!isCooked && semRequiredOutOfMax > 0 && semRequiredOutOfMax <= maxExternal && (
-                  <span className="text-[20px] font-bold text-white/20" style={{ fontFamily: "Montserrat" }}>/{maxExternal}</span>
+                  <span className="text-[20px] font-bold text-white/20" >/{maxExternal}</span>
                 )}
               </div>
             </div>
 
             <div className="flex justify-between items-start w-full px-2 shrink-0">
               <div className="flex flex-col items-start w-1/2">
-                <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1.5" style={{ fontFamily: "Aonic" }}>
+                <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1.5" >
                   current internals
                 </span>
                 <div className="flex items-baseline gap-1 h-10">
-                  <span className="text-[2rem] leading-[1] font-black text-white" style={{ fontFamily: "Montserrat" }}>
+                  <span className="text-[2rem] leading-[1] font-black text-white" >
                     {Number.isInteger(currentInternals) ? currentInternals : currentInternals.toFixed(1)}
                   </span>
-                  <span className="text-[12px] font-bold text-white/20" style={{ fontFamily: "Montserrat" }}>/{activePredSub.totalMax}</span>
+                  <span className="text-[12px] font-bold text-white/20" >/{activePredSub.totalMax}</span>
                 </div>
               </div>
               <div className="flex flex-col items-end w-1/2">
-                <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1.5 text-right" style={{ fontFamily: "Aonic" }}>
+                <span className="text-[11px] font-bold lowercase tracking-widest text-white/40 mb-1.5 text-right" >
                   expected remaining
                 </span>
                 <div className="flex items-center gap-1 bg-white/5 rounded-[12px] px-1.5 py-1.5 h-10">
@@ -154,9 +154,9 @@ export default function BrutalistTarget({
                       onChange={handleExpectedChange}
                       placeholder="0"
                       className="w-6 bg-transparent text-[18px] font-black text-white text-center outline-none placeholder:text-white/20"
-                      style={{ fontFamily: "Montserrat" }}
+                      
                     />
-                    <span className="text-[11px] font-bold text-white/20" style={{ fontFamily: "Montserrat" }}>/{maxPossibleExpected}</span>
+                    <span className="text-[11px] font-bold text-white/20" >/{maxPossibleExpected}</span>
                   </div>
                   <button
                     onClick={() => {
@@ -172,7 +172,7 @@ export default function BrutalistTarget({
             </div>
 
             <div className="flex flex-col w-full shrink-0 mt-2">
-              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-white/40 mb-2 px-2" style={{ fontFamily: "Montserrat" }}>
+              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-white/40 mb-2 px-2" >
                 target grade
               </span>
               <div className="grid grid-cols-3 gap-2">
@@ -185,15 +185,15 @@ export default function BrutalistTarget({
                     }}
                     className={`py-3 rounded-[16px] flex flex-col items-center justify-center transition-all ${targetGrade === g.min ? "bg-[#ceff1c] text-black" : "bg-white/5 text-white/40 hover:bg-white/10"}`}
                   >
-                    <span className="text-[18px] font-black" style={{ fontFamily: "Montserrat" }}>{g.label}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ fontFamily: "Aonic" }}>{g.min}+</span>
+                    <span className="text-[18px] font-black" >{g.label}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest mt-0.5" >{g.min}+</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="flex flex-col w-full shrink-0 mt-2 pb-2">
-              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-white/40 mb-2 px-2" style={{ fontFamily: "Montserrat" }}>
+              <span className="text-[10px] font-bold lowercase tracking-[0.2em] text-white/40 mb-2 px-2" >
                 select subject
               </span>
               <div className="flex gap-2 overflow-x-auto no-scrollbar w-full px-2">
@@ -209,7 +209,7 @@ export default function BrutalistTarget({
                           setPredSubjectId(sub.id);
                         }}
                         className={`px-4 py-2.5 rounded-[12px] text-[12px] font-bold uppercase tracking-widest transition-all whitespace-nowrap flex flex-col items-center gap-0.5 ${isIgnored ? "opacity-40 grayscale" : ""} ${isActive ? "bg-[#ceff1c] text-black" : "bg-white/5 text-white hover:bg-white/10"}`}
-                        style={{ fontFamily: "Aonic" }}
+                        
                       >
                         <span>{sub.shortName || sub.code}</span>
                         <span className={`text-[9px] ${isActive ? "opacity-100 font-black" : "opacity-60 font-black"}`}>

@@ -1,13 +1,25 @@
 "use client";
-export const runtime = "edge";
-
 import React from "react";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/context/ThemeContext";
-import MarksMinimalist from "@/components/themes/minimalist/marks/Marks";
-import MarksBrutalist from "@/components/themes/brutalist/marks/Marks";
+import dynamic from "next/dynamic";
+
+const MarksMinimalist = dynamic(() => import("@/components/themes/minimalist/marks/Marks"), { ssr: false });
+const MarksBrutalist = dynamic(() => import("@/components/themes/brutalist/marks/Marks"), { ssr: false });
 
 export default function MarksPage() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return <MarksContent />;
+}
+
+function MarksContent() {
   const { userData } = useApp();
   const { uiStyle } = useTheme();
 

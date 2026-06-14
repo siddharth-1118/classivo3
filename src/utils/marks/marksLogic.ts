@@ -25,13 +25,50 @@ export const getGrade = (score: number) => {
 
 export const buildCourseMap = (data: any) => {
   const map: Record<string, string> = {};
-  if (data?.attendance) {
-    data.attendance.forEach((sub: any) => {
-      if (sub.code && sub.title) {
-        map[sub.code.trim()] = sub.title;
+  
+  // 1. Populate from courses object
+  if (data?.courses) {
+    Object.values(data.courses).forEach((course: any) => {
+      if (course && typeof course === 'object') {
+        const code = course.code || course.courseCode;
+        const name = course.name || course.courseTitle || course.title;
+        if (code && name) {
+          map[code.trim()] = name.trim();
+        }
       }
     });
   }
+  
+  // 2. Populate from schedule/timetable
+  const schedules = [data?.effectiveSchedule, data?.timetable, data?.schedule, data?.time_table].filter(Boolean);
+  schedules.forEach((sched: any) => {
+    if (typeof sched === 'object') {
+      Object.values(sched).forEach((daySchedule: any) => {
+        if (daySchedule && typeof daySchedule === 'object') {
+          Object.values(daySchedule).forEach((slot: any) => {
+            if (slot && typeof slot === 'object') {
+              const code = slot.courseCode || slot.course || slot.code;
+              const name = slot.courseTitle || slot.name || slot.title || slot.course;
+              if (code && name && name !== code) {
+                const cleanCode = code.split("-")[0].trim();
+                map[cleanCode] = name.trim();
+              }
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // 3. Populate from attendance
+  if (data?.attendance) {
+    data.attendance.forEach((sub: any) => {
+      if (sub.code && sub.title) {
+        map[sub.code.trim()] = sub.title.trim();
+      }
+    });
+  }
+  
   return map;
 };
 
@@ -268,10 +305,17 @@ export const processAndSortMarks = (
       const percentage = max > 0 ? (got / max) * 100 : 0;
       const code = subject.courseCode || "";
       const cleanCode = code.trim();
+      // Try multiple code formats to find the subject name:
+      // 1. exact code, 2. code without trailing -P/-T lab suffix, 3. first segment before dash
+      const baseCode = cleanCode.replace(/-[PT]$/i, "").trim();
+      const firstSegment = cleanCode.split("-")[0].trim();
       const title =
-        courseMap[cleanCode] ||
         subject.courseTitle ||
-        code ||
+        courseMap[cleanCode] ||
+        courseMap[baseCode] ||
+        courseMap[firstSegment] ||
+        subject.title ||
+        cleanCode ||
         "Unknown Subject";
       
       const shortName = getAcronym(title);

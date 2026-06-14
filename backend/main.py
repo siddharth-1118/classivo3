@@ -37,31 +37,35 @@ async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExc
         content={"detail": "stop spamming blud"}
     )
 
+
+
+# @app.middleware("http")
+# async def security_middleware(request: Request, call_next):
+#     if request.method == "OPTIONS":
+#         return await call_next(request)
+#     
+#     app_header = request.headers.get("X-Ratio-App")
+#     if app_header != "true":
+#         return PlainTextResponse(
+#             status_code=403, 
+#             content="nice try hackerman\nget out before i call the bouncers"
+#         )
+#         
+#     return await call_next(request)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://getratiod.lol",
-        "https://www.getratiod.lol",
-        "http://localhost:3000",
-        "http://localhost:9002",
+        "https://ratiod-app-srm.loca.lt",
+        "http://localhost:9000",
+        "http://localhost",
+        "capacitor://localhost",
+        "*"
     ],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "X-Student-Key", "X-Ratio-App"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-@app.middleware("http")
-async def security_middleware(request: Request, call_next):
-    if request.method == "OPTIONS":
-        return await call_next(request)
-    
-    app_header = request.headers.get("X-Ratio-App")
-    if app_header != "true":
-        return PlainTextResponse(
-            status_code=403, 
-            content="nice try hackerman\nget out before i call the bouncers"
-        )
-        
-    return await call_next(request)
 
 def get_now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " IST"
@@ -118,8 +122,12 @@ async def refresh_data(creds: Credentials, request: Request):
             pass
         raise HTTPException(status_code=401, detail="Invalid Credentials")
 
+@app.options("/login")
+async def login_options():
+    return JSONResponse(content={"success": True})
+
 @app.post("/login")
-@limiter.limit("5/minute")
+# @limiter.limit("5/minute")
 async def login(creds: Credentials, request: Request):
     start_total = time.time()
     print(f"\n[API] Incoming login request for: {creds.username}", flush=True)
@@ -187,3 +195,6 @@ async def login(creds: Credentials, request: Request):
         except Exception:
             pass
         raise HTTPException(status_code=401, detail="Invalid Credentials")
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 3001))
+    uvicorn.run(app, host='0.0.0.0', port=port)

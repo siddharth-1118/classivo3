@@ -1,47 +1,90 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import SettingsPage from "@/components/shared/SettingsPage";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAcademiaData } from "@/hooks/useAcademiaData";
 
-const BrutalistThemeLayout = dynamic(
-  () => import("@/components/themes/brutalist/BrutalistTheme"),
-  { loading: () => <div className="h-full w-full bg-theme-bg" /> }
-);
-
-const MinimalistThemeLayout = dynamic(
-  () => import("@/components/themes/minimalist/MinimalTheme"),
-  { loading: () => <div className="h-full w-full bg-theme-bg" /> }
-);
+import BrutalistThemeLayout from "@/components/themes/brutalist/BrutalistTheme";
+import MinimalistThemeLayout from "@/components/themes/minimalist/MinimalTheme";
 
 import { AppLayoutContext } from "@/context/AppLayoutContext";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { userData, logout, customDisplayName, setCustomDisplayName, isUpdating, setIsUpdateHistoryOpen } = useApp();
+  const { userData, logout, customDisplayName, setCustomDisplayName, isUpdating, setIsUpdateHistoryOpen, isInitialized } = useApp();
   const { theme, setTheme, uiStyle, isDark } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSwipeDisabled, setIsSwipeDisabled] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const academia = useAcademiaData(userData as any);
   const router = useRouter();
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith("/admin");
 
   useEffect(() => {
-    const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
-    const hasSession = document.cookie.includes("ratio_session=");
-    
-    if (!isOnboarded || !hasSession) {
-      router.replace("/onboarding");
-      return;
+    if (!isInitialized || isAdminRoute) return;
+
+    const checkRedirect = () => {
+      const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
+      if (!isOnboarded) {
+        setIsRedirecting(true);
+        router.replace("/onboarding");
+        return true;
+      }
+
+      const hasData = localStorage.getItem("ratio_data");
+      const hasCreds = localStorage.getItem("ratio_credentials");
+
+      if (hasData && userData && !userData.profile) {
+        console.warn("Corrupted user data detected. Redirecting to login...");
+        localStorage.removeItem("ratio_data");
+        localStorage.removeItem("ratio_credentials");
+        setIsRedirecting(true);
+        router.replace("/login");
+        return true;
+      }
+
+      if (!userData && !hasData && !hasCreds) {
+        setIsRedirecting(true);
+        router.replace("/login");
+        return true;
+      }
+      return false;
+    };
+
+    const redirected = checkRedirect();
+    if (!redirected) {
+      setIsRedirecting(false);
     }
-  }, [router]);
+  }, [router, userData, isInitialized, isAdminRoute]);
 
   const handleUpdateName = (name: string) => {
     setCustomDisplayName(name);
     localStorage.setItem("ratiod_custom_name", name);
   };
+
+  if (isAdminRoute) {
+    return (
+      <div className="h-full w-full bg-theme-bg overflow-auto">
+        {children}
+      </div>
+    );
+  }
+
+  if (!isInitialized || isRedirecting) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-theme-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-theme-emphasis border-t-transparent rounded-full animate-spin" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-theme-muted animate-pulse">
+            {isRedirecting ? "Redirecting..." : "syncing session..."}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const sharedProps = {
     data: userData as any,
@@ -79,15 +122,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onBack={() => setIsSettingsOpen(false)}
               onLogout={logout}
               profile={{
+                ...userData?.profile,
                 name: customDisplayName || userData?.profile?.name || "Student",
-                regNo: userData?.profile?.regNo || "",
               }}
               onUpdateName={handleUpdateName}
               onSelectTheme={(newTheme) => {
                 setTheme(newTheme);
                 setIsSettingsOpen(false);
               }}
-              onOpenHistory={() => setIsUpdateHistoryOpen(true)}
               currentTheme={theme}
             />
           )}

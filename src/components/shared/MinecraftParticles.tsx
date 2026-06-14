@@ -101,8 +101,7 @@ export default function MinecraftParticles() {
             width: p.size,
             height: p.size,
             backgroundColor: p.color,
-            boxShadow: "1px 1px 0px rgba(0,0,0,0.3)",
-          }}
+            boxShadow: "1px 1px 0px rgba(0,0,0,0.3)" }}
         />
       ))}
     </div>

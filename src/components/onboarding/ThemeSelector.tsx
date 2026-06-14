@@ -123,7 +123,7 @@ export default function ThemeSelector({ onComplete }: ThemeSelectorProps) {
             onClick={() => onComplete()}
             className="w-full py-5 bg-white text-[#0E2A47] rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl pointer-events-auto"
           >
-            start using ratio'd
+            start using classivo
           </motion.button>
         </div>
       </div>

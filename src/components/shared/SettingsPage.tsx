@@ -1,80 +1,24 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import {
-  ChevronLeft,
-  Pencil,
-  Bell,
-  Palette,
-  Lock,
-  Cloud,
-  ChevronRight,
-  LogOut,
-  Check,
-  X,
-  User,
-  BookOpen,
-  RefreshCw,
-  PartyPopper,
-  Store,
-  Clock,
-} from "lucide-react";
-import { requestNotificationPermission } from "@/utils/shared/notifs";
+import { motion, AnimatePresence } from "framer-motion";
+import { requestNotificationPermission, subscribeToPushNotifications, sendNotification } from "@/utils/shared/notifs";
 import { StudentProfile } from "@/types";
 import { useApp } from "@/context/AppContext";
 import { EncryptionUtils } from "@/utils/shared/Encryption";
-import {
-  COLOR_THEMES,
-  parseTheme,
-  buildTheme,
-  getThemeDisplayName,
-  type UiStyle,
-  type ColorTheme,
-} from "@/utils/theme/themeUtils";
 import CourseDetailsPage from "@/components/shared/CourseDetailsPage";
-import { UserAvatar } from "@/components/shared/UserAvatar";
-import PrivacyProtocol from "@/components/shared/PrivacyProtocol";
 
-import WhatsNew from "./WhatsNew"; 
-
-const WhatsappIcon = ({ size = 20 }: { size?: number }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A14.142 14.142 0 0012 0C5.383 0 0 5.383 0 12c0 2.112.551 4.17 1.595 5.987L0 24l6.155-1.614A11.954 11.954 0 0012 24c6.617 0 12-5.383 12-12 0-3.204-1.248-6.216-3.514-8.482z"/>
-  </svg>
-);
+import { Haptics } from "@/utils/shared/haptics";
 
 const backdropVariants: any = {
-  hidden: { opacity: 0, backdropFilter: "blur(0px)" },
-  visible: { opacity: 1, backdropFilter: "blur(12px)", transition: { duration: 0.5 } },
-  exit: { opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.3 } },
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.3 } },
+  exit: { opacity: 0, transition: { duration: 0.25 } },
 };
 
 const panelVariants: any = {
-  hidden: { x: "-100%" },
-  visible: { x: "0%", transition: { duration: 0.7, ease: [0.6, 0.05, 0.01, 0.9] as any, when: "beforeChildren", staggerChildren: 0.05 } },
-  exit: { x: "-100%", transition: { duration: 0.4, ease: "easeIn" } },
-};
-
-const themePanelVariants: any = {
   hidden: { x: "100%" },
-  visible: { x: "0%", transition: { duration: 0.5, ease: [0.6, 0.05, 0.01, 0.9] as any, when: "beforeChildren", staggerChildren: 0.05 } },
-  exit: { x: "100%", transition: { duration: 0.35, ease: "easeIn" } },
-};
-
-const itemVariants: any = {
-  hidden: { opacity: 0, x: -10 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-};
-
-const themeItemVariants: any = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  visible: { x: "0%", transition: { duration: 0.45, ease: [0.34, 1.56, 0.64, 1] } },
+  exit: { x: "100%", transition: { duration: 0.3, ease: "easeIn" } },
 };
 
 interface SettingsPageProps {
@@ -83,454 +27,261 @@ interface SettingsPageProps {
   profile?: StudentProfile;
   onUpdateName?: (name: string) => void;
   onSelectTheme?: (id: string) => void;
-  onOpenHistory?: () => void;
   currentTheme?: string;
 }
 
-interface SettingItemProps {
-  icon: React.ReactNode;
-  label: string;
-  toggle?: boolean;
-  isActive?: boolean;
-  onClick?: () => void;
-  value?: string;
-}
-
-const SettingItem = ({ icon, label, toggle = false, isActive = false, onClick, value }: SettingItemProps) => {
-  return (
-    <div onClick={onClick} className="flex items-center justify-between px-2 py-4 rounded-xl active:bg-theme-surface transition-colors cursor-pointer">
-      <div className="flex items-center gap-4">
-        <span className="text-lg">{icon}</span>
-        <span className="text-[15px] font-medium text-theme-text">{label}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        {value && <span className="text-sm text-theme-muted">{value}</span>}
-        {toggle ? (
-          <div className={`w-12 h-7 rounded-full relative transition-all duration-300 shadow-sm ${isActive ? "bg-theme-highlight" : "bg-[#333333]"}`}>
-            <div className={`absolute top-0.5 w-[21px] h-[21px] rounded-full transition-all duration-300 shadow-md ${isActive ? "right-0.5 bg-theme-bg" : "left-0.5 bg-white"}`} />
-          </div>
-        ) : (
-          <ChevronRight className="w-5 h-5 text-theme-muted" strokeWidth={2.5} />
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ProfileCard = ({ profile, onClose }: { profile: any; onClose: () => void }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const rotateX = useTransform(y, [-100, 100], [15, -15]);
-  const rotateY = useTransform(x, [-100, 100], [-15, 15]);
-
-  return (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-      <motion.div style={{ x, y, rotateX, rotateY, perspective: 1000 }} drag dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }} dragElastic={0.1} className="relative w-full max-w-sm aspect-[3/4.5] rounded-[32px] overflow-hidden bg-theme-bg flex flex-col shadow-2xl touch-none border border-theme-border">
-        <div className="h-[50%] w-full relative overflow-hidden">
-           <svg viewBox="0 0 500 500" preserveAspectRatio="none" className="absolute inset-0 w-full h-full opacity-90">
-             <defs>
-               <linearGradient id="arc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                 <stop offset="0%" stopColor="var(--theme-highlight)" />
-                 <stop offset="100%" stopColor="var(--theme-secondary)" />
-               </linearGradient>
-             </defs>
-             <path d="M0,0 L500,0 L500,320 C420,320 380,180 250,180 C120,180 80,320 0,320 Z" fill="url(#arc-grad)" />
-           </svg>
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_70%)]" />
-        </div>
-
-        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-theme-text/5 hover:bg-theme-text/10 flex items-center justify-center text-theme-text/40 transition-colors z-20">
-          <X size={20} />
-        </button>
-
-        <div className="px-8 flex flex-col justify-start pt-4 pointer-events-none">
-          <h2 className="text-4xl font-black text-theme-text leading-[0.9] tracking-tighter lowercase mb-1" style={{ fontFamily: "var(--font-montserrat)" }}>
-            {profile.name}
-          </h2>
-          <p className="text-[11px] font-bold text-theme-text/30 uppercase tracking-[0.15em] leading-tight">
-            {profile.dept || profile.program} student
-          </p>
-        </div>
-
-        <div className="px-8 mt-6 flex-1 pointer-events-none">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-theme-text/30 block mb-0.5">batch</span>
-              <span className="text-[13px] font-bold text-theme-text opacity-80">{String(profile.batch) === "1/2" ? "2" : (profile.batch || "N/A")}</span>
-            </div>
-            <div>
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-theme-text/30 block mb-0.5">semester</span>
-              <span className="text-[13px] font-bold text-theme-text opacity-80">{profile.semester || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-theme-text/30 block mb-0.5">section</span>
-              <span className="text-[13px] font-bold text-theme-text opacity-80 truncate">{profile.section?.replace(/[()]/g, '') || "N/A"}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-8 pb-8 flex justify-between items-end pointer-events-none">
-          <div className="flex items-center border border-theme-border rounded-lg overflow-hidden h-7">
-            <span className="px-2 text-[9px] font-black text-theme-text/50 border-r border-theme-border h-full flex items-center">SRMIST</span>
-            <div className="px-1.5 h-full flex items-center bg-theme-text/[0.03]">
-               <div className="grid grid-cols-3 gap-0.5">
-                 {[...Array(9)].map((_, i) => <div key={i} className="w-0.5 h-0.5 bg-theme-text/20 rounded-full" />)}
-               </div>
-            </div>
-            <span className="px-2 text-[9px] font-bold text-theme-text/50 border-l border-theme-border h-full flex items-center tracking-tight">
-              {profile.regNo}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-end">
-            <span className="text-[14px] font-black text-theme-text lowercase tracking-tight" style={{ fontFamily: "Urbanosta" }}>
-              ratio'd
-            </span>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const SettingsPage = ({
+export default function SettingsPage({
   onBack,
   onLogout,
   profile,
-  onUpdateName,
-  onSelectTheme,
-  onOpenHistory,
-  currentTheme = "minimalist_minimalist-dark",
-}: SettingsPageProps) => {
-  const { userData, refreshData, isUpdating, profileSeed, setProfileSeed } = useApp();
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempName, setTempName] = useState("");
-  const [tempSeed, setTempSeed] = useState(profileSeed);
+}: SettingsPageProps) {
+  const { userData, refreshData, isUpdating } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(false);
-  const [showThemes, setShowThemes] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
-  const [showProfileCard, setShowProfileCard] = useState(false);
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(currentTheme);
 
-  const { uiStyle: initialStyle, colorTheme: initialColor } = parseTheme(selectedTheme);
-  const [uiStyle, setUiStyle] = useState<UiStyle>(initialStyle);
-  const [colorTheme, setColorTheme] = useState<ColorTheme>(initialColor);
+  // Diagnostic states
+  const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");
 
   useEffect(() => {
-    if ("Notification" in window) {
-      setNotifEnabled(Notification.permission === "granted");
-    }
-  }, []);
+    const savedState = localStorage.getItem("notifs_enabled") === "true";
+    setNotifEnabled(savedState);
+  }, [profile]);
 
-  const handleApply = () => {
-    if (tempName.trim()) {
-      onUpdateName?.(tempName.trim());
+  useEffect(() => {
+    if (notifEnabled) {
+      try {
+        subscribeToPushNotifications().catch(console.error);
+      } catch (e) {
+        console.error(e);
+      }
     }
-    setProfileSeed(tempSeed);
-    localStorage.setItem("ratio_profile_seed", tempSeed);
-    setIsEditing(false);
-  };
+  }, [notifEnabled]);
 
-  const handleNotificationClick = async () => {
-    if (!window.isSecureContext) {
-      alert("Notifications require HTTPS.");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      alert("Permission blocked. Please reset site permissions.");
-      return;
-    }
-    const granted = await requestNotificationPermission();
-    setNotifEnabled(granted);
-  };
-
-  const handleThemeApply = (style: UiStyle, color: string) => {
-    const combined = buildTheme(style, color as any);
-    setSelectedTheme(combined);
-    setShowThemes(false);
-    setTimeout(() => {
-      onSelectTheme?.(combined);
-    }, 400);
+  const handleNotificationToggle = () => {
+    Haptics.selection();
+    setNotifEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem("notifs_enabled", next.toString());
+      return next;
+    });
   };
 
   const handleSync = async () => {
+    Haptics.selection();
     const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
     if (creds && userData) {
-      await refreshData(creds, userData);
-      window.location.reload();
+      try {
+        await refreshData(creds, userData);
+        Haptics.success();
+        alert("Portal sync completed successfully!");
+      } catch (err) {
+        Haptics.error();
+        console.error("Sync failed", err);
+      }
     }
   };
 
-  const handleRandomizeSeed = () => {
-    const newSeed = Math.random().toString(36).substring(7);
-    setTempSeed(newSeed);
-    if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(10);
+  const handleTestNotif = () => {
+    Haptics.selection();
+    setDiagnosticState("testing");
+    setTimeout(() => {
+      sendNotification("Classivo", "System handshake verification successful! 🎉");
+      setDiagnosticState("success");
+      setTimeout(() => {
+        setDiagnosticState("idle");
+      }, 2000);
+    }, 1500);
   };
-
-  const defaultThemes = COLOR_THEMES.filter(t => ["default", "minimalist-dark", "brutalist"].includes(t.id));
-  const namedThemes = COLOR_THEMES.filter(t => !["default", "minimalist-dark", "brutalist", "yam"].includes(t.id));
 
   return (
     <>
-      <motion.div variants={backdropVariants} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 z-40 bg-black/40" onClick={onBack} />
+      <motion.div 
+        variants={backdropVariants} 
+        initial="hidden" 
+        animate="visible" 
+        exit="exit" 
+        className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" 
+        onClick={onBack} 
+      />
 
-      <motion.div variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 z-50 bg-theme-bg text-theme-text flex flex-col overflow-hidden">
-        <motion.div variants={itemVariants} className="pt-12 pb-4 px-6 flex items-center gap-4">
-          <button onClick={onBack} className="w-10 h-10 rounded-full bg-theme-surface flex items-center justify-center active:scale-90 transition-transform">
-            <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
-          </button>
-          <h1 className="text-[26px] font-semibold tracking-tight">Settings</h1>
-        </motion.div>
-
-        <div className="flex-1 overflow-y-auto no-scrollbar">
-          <motion.div layout className="px-6 py-8 space-y-12">
-            <motion.div layout variants={itemVariants} className="space-y-6">
-              <AnimatePresence mode="wait">
-                {!isEditing ? (
-                  <motion.div 
-                    key="profile-view" 
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    exit={{ opacity: 0, y: -10 }} 
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden bg-theme-surface">
-                        <UserAvatar seed={profileSeed} className="w-full h-full" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold capitalize">
-                          {profile?.name ? profile.name.toLowerCase() : "Student"}
-                        </h3>
-                        <p className="text-xs uppercase tracking-widest text-theme-muted">
-                          {profile?.regNo || "Student Account"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => {
-                          const firstName = (profile?.name || "student").split(" ")[0].toLowerCase();
-                          setTempName(firstName);
-                          setTempSeed(profileSeed);
-                          setIsEditing(true);
-                        }} 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[22px] bg-theme-surface transition-colors text-sm font-semibold"
-                      >
-                        <Pencil className="w-4 h-4" /> Edit Profile
-                      </button>
-                      <button onClick={() => setShowProfileCard(true)} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[22px] bg-theme-surface transition-colors text-sm font-semibold">
-                        <User className="w-4 h-4" /> Profile Card
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key="profile-edit" 
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    exit={{ opacity: 0, y: -10 }} 
-                    className="flex flex-col gap-6 py-2"
-                  >
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-theme-surface border-2 border-theme-border shadow-inner relative group transition-all">
-                        <UserAvatar seed={tempSeed} className="w-full h-full scale-110" />
-                      </div>
-                      <button 
-                        onClick={handleRandomizeSeed}
-                        className="w-full py-3 rounded-[22px] bg-theme-surface border border-theme-border flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all text-theme-text"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" /> randomize avatar
-                      </button>
-                    </div>
-
-                    <div className="w-full space-y-2">
-                      <p className="text-[10px] uppercase tracking-widest text-theme-muted ml-4">display name</p>
-                      <input autoFocus type="text" placeholder="New display name..." className="w-full bg-theme-surface border border-theme-border rounded-[22px] px-6 py-4 text-sm focus:outline-none text-theme-text font-medium" value={tempName} onChange={(e) => setTempName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleApply()} />
-                    </div>
-                    
-                    <div className="flex gap-3 w-full">
-                      <button onClick={handleApply} className="flex-[2] py-4 rounded-[22px] bg-theme-emphasis text-theme-bg font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        <Check className="w-4 h-4" strokeWidth={3} /> apply
-                      </button>
-                      <button onClick={() => { setIsEditing(false); setTempName(""); }} className="flex-1 py-4 rounded-[22px] bg-theme-surface text-theme-muted font-black text-xs uppercase tracking-widest active:scale-95 transition-all border border-theme-border">
-                        cancel
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            <motion.div layout variants={itemVariants} className="space-y-12">
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 ml-4">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-theme-muted font-black whitespace-nowrap">Dashboard</p>
-                  <div className="h-[1.5px] flex-1 bg-theme-text opacity-40 rounded-full" />
-                </div>
-                <div className="space-y-1 px-1">
-                  <SettingItem icon={<Bell className="w-5 h-5 opacity-80 text-theme-text" />} label="Notifications" toggle isActive={notifEnabled} onClick={handleNotificationClick} />
-                  <SettingItem icon={<Palette className="w-5 h-5 opacity-80 text-theme-text" />} label="Select Theme" onClick={() => setShowThemes(true)} value={getThemeDisplayName(selectedTheme)} />
-                  <SettingItem icon={<BookOpen className="w-5 h-5 opacity-80 text-theme-text" />} label="Course Details" onClick={() => setShowCourseDetails(true)} />
-                  <SettingItem icon={<Cloud className="w-5 h-5 opacity-80 text-theme-text" />} label="Sync Data" onClick={handleSync} value={isUpdating ? "Syncing..." : ""} />
-                  <SettingItem icon={<Clock className="w-5 h-5 opacity-80 text-theme-text" />} label="History Log" onClick={onOpenHistory} />
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 ml-4">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-theme-muted font-black whitespace-nowrap">Discover</p>
-                  <div className="h-[1.5px] flex-1 bg-theme-text opacity-40 rounded-full" />
-                </div>
-                <div className="space-y-1 px-1">
-                  <SettingItem icon={<PartyPopper className="w-5 h-5 opacity-80 text-theme-text" />} label="What's New" onClick={() => setShowWhatsNew(true)} />
-                  <SettingItem icon={<Lock className="w-5 h-5 opacity-80 text-theme-text" />} label="Privacy" onClick={() => setShowPrivacy(true)} />
-                  <SettingItem icon={<WhatsappIcon size={20} />} label="WhatsApp Community" onClick={() => window.open("https://chat.whatsapp.com/D7wymoQ1zrQKqf4Qs4gw91", "_blank")} />
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-
-        <motion.div variants={itemVariants} className="p-6 pt-4 border-t border-theme-border bg-theme-bg z-10 space-y-6">
-          <button onClick={onLogout} className="w-full py-4 rounded-[26px] bg-theme-emphasis text-theme-bg font-bold text-base hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
-            <LogOut className="w-5 h-5" /> Log Out
-          </button>
-          <div className="space-y-2">
-            <p className="text-xs text-center text-theme-muted">
-              ratio'd is open source on <a href="https://github.com/projectakshith/ratio-d" target="_blank" rel="noopener noreferrer" className="text-theme-text hover:underline font-bold">github</a>
-            </p>
-            <p className="text-xs text-center text-theme-muted">
-              made by <a href="https://www.instagram.com/akshithfilms/" target="_blank" rel="noopener noreferrer" className="text-theme-text hover:underline">Akshith Rajesh</a> and <a href="https://www.instagram.com/_prethiv/" target="_blank" rel="noopener noreferrer" className="text-theme-text hover:underline">Prethiv Sriman D</a>
-            </p>
+      <motion.div 
+        variants={panelVariants} 
+        initial="hidden" 
+        animate="visible" 
+        exit="exit" 
+        className="fixed inset-0 z-50 bg-[#0f131f] text-[#dfe1f4] flex flex-col overflow-hidden font-body-lg select-none"
+      >
+        {/* Settings Header */}
+        <header className="pt-16 px-6 pb-4 flex justify-between items-end shrink-0 border-b border-outline-variant/10 bg-slate-950/20">
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#6EE7F7]">Configuration</span>
+            <h1 className="text-3xl font-black lowercase tracking-tighter mt-1 bg-gradient-to-r from-white via-white to-cyan-200 bg-clip-text text-transparent">settings</h1>
           </div>
-        </motion.div>
+          <button 
+            onClick={() => { Haptics.selection(); onBack(); }} 
+            className="w-11 h-11 rounded-full bg-slate-900 border border-outline-variant/10 flex items-center justify-center active:scale-90 transition-transform shadow-md"
+          >
+            <span className="material-symbols-outlined text-[#EEF2FF]">chevron_left</span>
+          </button>
+        </header>
+
+        {/* Scrollable Panel */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-6 space-y-8">
+          
+          {/* User Profile Banner — no avatar */}
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="rounded-2xl p-5 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(110,231,247,0.08) 0%, rgba(129,140,248,0.08) 100%)",
+                border: "1px solid rgba(110,231,247,0.15)",
+              }}>
+              {/* Glow orbs */}
+              <div className="absolute -top-8 -right-8 w-24 h-24 bg-cyan-400/8 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-indigo-400/8 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Top label */}
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-cyan-400/60 mb-3">Student Account</p>
+
+              {/* Name & Reg */}
+              <h2 className="text-[22px] font-black text-white lowercase tracking-tight leading-none">
+                {profile?.name ? profile.name.toLowerCase() : "Student"}
+              </h2>
+              <p className="text-[11px] font-bold text-cyan-300/60 tracking-widest uppercase mt-1">
+                {profile?.regNo || "—"}
+              </p>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                  style={{ background: "rgba(110,231,247,0.1)", color: "#6ee7f7", border: "1px solid rgba(110,231,247,0.2)" }}>
+                  {profile?.dept || "CS"}
+                </span>
+                <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                  style={{ background: "rgba(129,140,248,0.1)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.2)" }}>
+                  sem {profile?.semester || "—"}
+                </span>
+              </div>
+
+              {/* Active dot */}
+              <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[9px] font-bold text-emerald-400/60 uppercase tracking-wider">active</span>
+              </div>
+            </div>
+          </section>
+
+
+          {/* Setting Cards: 2x2 Grid */}
+          <section className="space-y-4">
+            <h3 className="font-label-caps text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 text-left">Utilities &amp; Preferences</h3>
+            <div className="grid grid-cols-2 gap-4">
+              
+              {/* Notifications Toggle */}
+              <div 
+                onClick={handleNotificationToggle}
+                className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="p-2 bg-primary-container/10 rounded-lg group-hover:bg-primary-container/20 transition-colors text-primary-container">
+                    <span className="material-symbols-outlined">notifications</span>
+                  </div>
+                  
+                  {/* Custom Toggle Switch */}
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <div 
+                      className={`w-10 h-5.5 rounded-full relative transition-all duration-300 shadow-sm border border-white/5`}
+                      style={{ background: notifEnabled ? 'var(--primary-container)' : 'rgba(255,255,255,0.06)' }}
+                    >
+                      <motion.div 
+                        layout 
+                        className="absolute top-0.5 w-[16px] h-[16px] rounded-full bg-white shadow-md"
+                        style={{ left: notifEnabled ? '20px' : '2px' }}
+                        transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-title-md text-[16px] font-black text-on-surface">Notifications</h4>
+                  <p className="font-body-sm text-[12px] text-on-surface-variant font-medium mt-0.5">Real-time alerts</p>
+                </div>
+              </div>
+
+              {/* Sync Data Button */}
+              <div 
+                onClick={handleSync}
+                className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <div className="p-2 bg-secondary-container/10 w-fit rounded-lg group-hover:bg-secondary-container/20 transition-colors text-secondary">
+                  <span className="material-symbols-outlined">sync</span>
+                </div>
+                <div>
+                  <h4 className="font-title-md text-[16px] font-black text-on-surface">Sync Data</h4>
+                  <p className="font-body-sm text-[12px] text-on-surface-variant font-medium mt-0.5">Update records</p>
+                </div>
+              </div>
+
+              {/* Syllabus Explorer */}
+              <div 
+                onClick={() => { Haptics.selection(); setShowCourseDetails(true); }}
+                className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <div className="p-2 bg-tertiary-container/10 w-fit rounded-lg group-hover:bg-tertiary-container/20 transition-colors text-[#ffd061]">
+                  <span className="material-symbols-outlined">auto_stories</span>
+                </div>
+                <div>
+                  <h4 className="font-title-md text-[16px] font-black text-on-surface">Syllabus</h4>
+                  <p className="font-body-sm text-[12px] text-on-surface-variant font-medium mt-0.5">Explore curriculum</p>
+                </div>
+              </div>
+
+
+
+            </div>
+          </section>
+
+          {/* Test Notification Action */}
+          <section className="space-y-4">
+            <button 
+              onClick={handleTestNotif}
+              disabled={diagnosticState !== "idle"}
+              className={`w-full font-title-md text-[16px] font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(110,231,247,0.15)] active:scale-95 transition-all text-background border border-primary-container/20 ${
+                diagnosticState === "success" 
+                  ? "bg-[#22C55E] text-white" 
+                  : "bg-primary-container text-background"
+              }`}
+            >
+              <span className="material-symbols-outlined">
+                {diagnosticState === "testing" ? "sync" : diagnosticState === "success" ? "check_circle" : "send"}
+              </span>
+              <span>
+                {diagnosticState === "testing" ? "Connecting..." : diagnosticState === "success" ? "Sent Successfully" : "Test Notification"}
+              </span>
+            </button>
+            <p className="text-center font-body-sm text-[12px] text-on-surface-variant px-8 leading-relaxed font-semibold">
+              This will trigger a system handshake to verify your device is ready for critical academic updates.
+            </p>
+          </section>
+
+          {/* Logout Action */}
+          <section className="pb-8">
+            <button 
+              onClick={() => { Haptics.warning(); onLogout(); }}
+              className="w-full border border-alert-rose/30 bg-alert-rose/5 text-alert-rose font-title-md text-[16px] font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-alert-rose/10 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined">logout</span>
+              Log Out
+            </button>
+            <div className="text-center mt-6">
+              <span className="font-label-caps text-[9px] font-bold text-on-surface-variant opacity-45 uppercase tracking-widest">
+                v1.4.0-stable // SRM Institute of Science and Technology
+              </span>
+            </div>
+          </section>
+        </div>
       </motion.div>
 
-      <AnimatePresence>
-        {showProfileCard && userData?.profile && (
-          <ProfileCard profile={userData.profile} onClose={() => setShowProfileCard(false)} />
-        )}
-      </AnimatePresence>
-
-      <PrivacyProtocol isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
-      <WhatsNew isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
-
       <CourseDetailsPage isOpen={showCourseDetails} onClose={() => setShowCourseDetails(false)} />
-
-      <AnimatePresence>
-        {showThemes && (
-          <>
-            <motion.div variants={backdropVariants} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 z-[60] bg-black/20" onClick={() => setShowThemes(false)} />
-            <motion.div variants={themePanelVariants} initial="hidden" animate="visible" exit="exit" className="fixed inset-0 z-[70] bg-theme-bg flex flex-col overflow-hidden">
-              <div className="pt-12 pb-4 px-6 flex items-center gap-4">
-                <button onClick={() => setShowThemes(false)} className="w-10 h-10 rounded-full bg-theme-surface flex items-center justify-center active:scale-90 transition-transform">
-                  <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
-                </button>
-                <h1 className="text-xl font-bold tracking-tight">Select Theme</h1>
-              </div>
-
-              <div className="flex-1 overflow-y-auto no-scrollbar">
-                <div className="px-6 py-6 space-y-10 pb-20">
-                  <motion.div variants={themeItemVariants} className="space-y-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-theme-muted px-1 text-left">
-                      Default Presets
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {defaultThemes.map((ct) => {
-                        const isActive = colorTheme === ct.id;
-                        const [bgSwatch, primarySwatch, hlSwatch] = ct.swatches;
-                        return (
-                          <button
-                            key={ct.id}
-                            onClick={() => {
-                              const targetStyle = ct.id === "brutalist" ? "brutalist" : "minimalist";
-                              setUiStyle(targetStyle);
-                              setColorTheme(ct.id);
-                              handleThemeApply(targetStyle, ct.id);
-                            }}
-                            className={`w-full relative flex items-start gap-4 p-3.5 rounded-2xl border-[1.5px] transition-all active:scale-[0.98] ${isActive ? "border-theme-highlight bg-theme-highlight/10" : "border-theme-border bg-theme-surface"}`}
-                          >
-                            <div className="flex gap-1 shrink-0 mt-0.5">
-                              {[bgSwatch, primarySwatch, hlSwatch].map((s, i) => (
-                                <div key={i} className="w-6 h-6 rounded-full border border-black/10" style={{ backgroundColor: s }} />
-                              ))}
-                            </div>
-                            <div className="flex flex-col items-start min-w-0 flex-1 text-left">
-                              <span className={`text-[15px] font-bold leading-tight ${isActive ? "text-theme-highlight" : "text-theme-text"}`}>
-                                {ct.name} {ct.id !== "brutalist" ? "(minimalist)" : ""}
-                              </span>
-                              <span className="text-[11px] text-theme-muted leading-snug mt-0.5">
-                                {ct.deity}<br />{ct.description}
-                              </span>
-                            </div>
-                            <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${ct.isDark ? "bg-black/30 text-white/70" : "bg-black/10 text-white/70"}`}>
-                              {ct.isDark ? "dark" : "light"}
-                            </span>                            
-                            {isActive && (
-                              <Check className="text-theme-highlight absolute bottom-3.5 right-3.5" size={18} strokeWidth={3} />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-
-                  <motion.div variants={themeItemVariants} className="space-y-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-theme-muted px-1 text-left">
-                      Named Collections (Minimalist)
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {namedThemes.map((ct) => {
-                        const isActive = colorTheme === ct.id;
-                        const [bgSwatch, primarySwatch, hlSwatch] = ct.swatches;
-                        return (
-                          <button
-                            key={ct.id}
-                            onClick={() => {
-                              setUiStyle("minimalist");
-                              setColorTheme(ct.id);
-                              handleThemeApply("minimalist", ct.id);
-                            }}
-                            className={`w-full relative flex items-start gap-4 p-3.5 rounded-2xl border-[1.5px] transition-all active:scale-[0.98] ${isActive ? "border-theme-highlight bg-theme-highlight/10" : "border-theme-border bg-theme-surface"}`}
-                          >
-                            <div className="flex gap-1 shrink-0 mt-0.5">
-                              {[bgSwatch, primarySwatch, hlSwatch].map((s, i) => (
-                                <div key={i} className="w-6 h-6 rounded-full border border-black/10" style={{ backgroundColor: s }} />
-                              ))}
-                            </div>
-                            <div className="flex flex-col items-start min-w-0 flex-1 text-left">
-                              <span className={`text-[15px] font-bold leading-tight ${isActive ? "text-theme-highlight" : "text-theme-text"}`}>
-                                {ct.name}
-                              </span>
-                              <div className="flex flex-col items-start">
-                                <span className="text-[10px] text-theme-muted uppercase tracking-widest">{ct.deity}</span>
-                                <span className="text-[11px] text-theme-muted leading-tight">{ct.description}</span>
-                              </div>
-                            </div>
-                            <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${ct.isDark ? "bg-black/30 text-white/70" : "bg-black/10 text-white/70"}`}>
-                              {ct.isDark ? "dark" : "light"}
-                            </span>                            
-                            {isActive && (
-                              <Check className="text-theme-highlight absolute bottom-3.5 right-3.5" size={18} strokeWidth={3} />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </>
   );
-};
-
-export default SettingsPage;
+}

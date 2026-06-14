@@ -1,7 +1,17 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Calculator, X, ChevronRight as ChevronRightIcon, Loader } from "lucide-react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { 
+  Calculator, 
+  X, 
+  ChevronRight as ChevronRightIcon, 
+  Loader, 
+  Calendar, 
+  TrendingUp,
+  CheckCircle,
+  AlertCircle
+} from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   getBaseAttendance,
@@ -10,38 +20,190 @@ import {
   getStatus,
   getAcronym,
   getRecoveryDate,
+  getOverallStats
 } from "@/utils/attendance/attendanceLogic";
 import calendarDataJson from "@/data/calendar_data.json";
 import Predict from "./Predict";
 import { AcademiaData } from "@/types";
 import { useAppLayout } from "@/context/AppLayoutContext";
-import { getOverallStats } from "@/utils/attendance/attendanceLogic";
 import { getRandomRoast } from "@/utils/shared/flavortext";
 import { useApp } from "@/context/AppContext";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { Haptics } from "@/utils/shared/haptics";
 
-const BEZIER = [0.34, 0.15, 0.16, 0.96] as const;
+const BEZIER = [0.34, 1.56, 0.64, 1] as const;
 
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.02,
+      staggerChildren: 0.05,
+      delayChildren: 0.05,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: -20, scale: 0.98 },
+  hidden: { opacity: 0, y: 15, scale: 0.98 },
   show: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.5, ease: BEZIER },
+    transition: { duration: 0.45, ease: BEZIER },
   },
 };
+
+const getSubjectTheme = (percent: number, safe: boolean) => {
+  if (percent >= 85) {
+    return {
+      borderClass: "border-l-primary-container",
+      textClass: "text-primary-container",
+      bgBadge: "bg-primary-container/10",
+      statusLabel: "excellent",
+      barColor: "#6ee7f7"
+    };
+  } else if (percent >= 75) {
+    return {
+      borderClass: "border-l-tertiary-container",
+      textClass: "text-tertiary-container",
+      bgBadge: "bg-tertiary-container/10",
+      statusLabel: "warning",
+      barColor: "#ffd061"
+    };
+  } else {
+    return {
+      borderClass: "border-l-alert-rose",
+      textClass: "text-alert-rose",
+      bgBadge: "bg-alert-rose/10",
+      statusLabel: "critical",
+      barColor: "#F43F5E"
+    };
+  }
+};
+
+function SubjectCard({ 
+  sub, 
+  isPredicting, 
+  isExpanded, 
+  onToggle 
+}: { 
+  sub: any; 
+  isPredicting: boolean; 
+  isExpanded: boolean; 
+  onToggle: () => void; 
+}) {
+  const percentVal = parseFloat(sub.percent);
+  const theme = getSubjectTheme(percentVal, sub.safe);
+
+  const formattedDate = sub.recoveryDate ? new Date(sub.recoveryDate).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    weekday: "short"
+  }) : null;
+
+  return (
+    <motion.div
+      layout="position"
+      whileTap={{ scale: 0.98 }}
+      className={`glass-panel rounded-xl p-5 border-l-4 transition-all duration-300 relative overflow-hidden cursor-pointer ${theme.borderClass} ${
+        isExpanded ? "border-glow-primary" : ""
+      }`}
+      onClick={onToggle}
+    >
+      <div className="flex justify-between items-start mb-3 relative z-10">
+        <div>
+          <span className={`font-label-caps text-[10px] py-1 px-2 rounded font-bold uppercase ${theme.bgBadge} ${theme.textClass}`}>
+            {sub.displayCode}
+          </span>
+          <h3 className="font-title-md text-[16px] text-on-surface mt-2 capitalize font-black tracking-tight leading-snug">
+            {sub.fullName}
+          </h3>
+          <p className="font-body-sm text-[12px] text-on-surface-variant font-medium mt-0.5">
+            conducted: {sub.conducted} classes
+          </p>
+        </div>
+        
+        <div className="text-right">
+          <div className={`font-headline-lg text-[24px] font-black ${theme.textClass}`}>
+            {sub.percent}%
+          </div>
+          <div className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-widest font-bold">
+            {theme.statusLabel}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-outline-variant/10 relative z-10">
+        <div className="flex gap-4 text-xs font-semibold">
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">check_circle</span>
+            <span className="text-on-surface">{sub.present}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[16px] text-alert-rose">cancel</span>
+            <span className="text-on-surface">{sub.conducted - sub.present}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {isPredicting && sub.hasChanged && (
+            <div className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5" style={{ color: theme.barColor }}>
+              <span className="opacity-50">{sub.originalVal}</span>
+              <ChevronRightIcon size={8} />
+              <span>{sub.val}</span>
+            </div>
+          )}
+          <div className="h-1.5 w-24 bg-surface-container-highest rounded-full overflow-hidden">
+            <div className="h-full" style={{ width: `${Math.min(percentVal, 100)}%`, backgroundColor: theme.barColor }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded drawer details */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden mt-3 pt-3 border-t border-outline-variant/10 text-[12px] font-medium leading-relaxed space-y-2 text-on-surface-variant"
+          >
+            {sub.safe ? (
+              <div className="flex items-start gap-2 bg-primary-container/5 border border-primary-container/10 rounded-xl p-3">
+                <span className="material-symbols-outlined text-primary-container text-sm mt-0.5">verified</span>
+                <div>
+                  <span className="text-on-surface font-bold">Safe Zone: </span>
+                  You can miss the next <b className="text-primary-container font-black">{sub.val}</b> classes in a row for this course and your attendance will stay above 75%.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 bg-alert-rose/5 border border-alert-rose/10 rounded-xl p-3">
+                  <span className="material-symbols-outlined text-alert-rose text-sm mt-0.5">warning</span>
+                  <div>
+                    <span className="text-on-surface font-bold">Action Required: </span>
+                    You must attend the next <b className="text-alert-rose font-black">{sub.val}</b> classes consecutively to bring your attendance back to 75%.
+                  </div>
+                </div>
+                {formattedDate && (
+                  <div className="flex items-start gap-2 bg-surface-container-high/50 border border-outline-variant/10 rounded-xl p-3">
+                    <span className="material-symbols-outlined text-primary-container text-sm mt-0.5">calendar_month</span>
+                    <div>
+                      <span className="text-on-surface font-bold">Recovery Target: </span>
+                      Estimated recovery to 75% is expected by <span className="text-primary-container font-black">{formattedDate}</span>.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
 
 export default function Attendance({
   data,
@@ -50,11 +212,16 @@ export default function Attendance({
   data: AcademiaData;
   academia: any;
 }) {
+  const router = useRouter();
   const { profileSeed } = useApp();
   const { setIsSwipeDisabled } = useAppLayout();
   const [isPredictOverlay, setIsPredictOverlay] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  // Quick bunk count forecast slider state
+  const [extraBunks, setExtraBunks] = useState(0);
 
   const {
     pullY,
@@ -73,11 +240,94 @@ export default function Attendance({
   const [predictAction, setPredictAction] = useState<"leave" | "attend" | "od">(
     "leave",
   );
+  const [activeTab, setActiveTab] = useState<"all" | "action" | "safe">("all");
   const [isRangeMode, setIsRangeMode] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Record<string, "leave" | "attend" | "od">>({});
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
+
+  const calYear = currentCalDate.getFullYear();
+  const calMonth = currentCalDate.getMonth();
+  const monthName = useMemo(() => {
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return monthNames[calMonth];
+  }, [calMonth]);
+
+  const startOffset = useMemo(() => {
+    const firstDay = new Date(calYear, calMonth, 1);
+    return (firstDay.getDay() + 6) % 7;
+  }, [calYear, calMonth]);
+
+  const daysInMonth = useMemo(() => {
+    return new Date(calYear, calMonth + 1, 0).getDate();
+  }, [calYear, calMonth]);
+
+  const formatDate = useCallback((y: number, m: number, d: number) => {
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }, []);
+
+  const isWeekendStr = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    return day === 0 || day === 6;
+  }, []);
+
+  const holidayMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    const calData = (academia?.calendarData?.length > 0) ? academia.calendarData : (calendarDataJson || []);
+    calData.forEach((item: any) => {
+      if (item.type?.toLowerCase().includes("holiday")) {
+        const dObj = new Date(item.date);
+        if (!isNaN(dObj.getTime())) {
+          const dStr = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, "0")}-${String(dObj.getDate()).padStart(2, "0")}`;
+          map.set(dStr, true);
+        }
+      }
+    });
+    return map;
+  }, [academia, calendarDataJson]);
+
+  const handleDateClick = useCallback((day: number) => {
+    const dStr = formatDate(calYear, calMonth, day);
+    if (!isRangeMode) {
+      setSelectedDates(prev => {
+        const next = { ...prev };
+        if (next[dStr]) {
+          delete next[dStr];
+        } else {
+          next[dStr] = predictAction;
+        }
+        return next;
+      });
+    } else {
+      if (!rangeStart || (rangeStart && rangeEnd)) {
+        setRangeStart(dStr);
+        setRangeEnd(null);
+        setSelectedDates({ [dStr]: predictAction });
+      } else {
+        const start = new Date(rangeStart);
+        const end = new Date(dStr);
+        if (end < start) {
+          setRangeStart(dStr);
+          setSelectedDates({ [dStr]: predictAction });
+        } else {
+          setRangeEnd(dStr);
+          const nextSelected: Record<string, "leave" | "attend" | "od"> = {};
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            if (!isWeekendStr(dateStr) && !holidayMap.has(dateStr)) {
+              nextSelected[dateStr] = predictAction;
+            }
+          }
+          setSelectedDates(nextSelected);
+        }
+      }
+    }
+  }, [calYear, calMonth, isRangeMode, rangeStart, rangeEnd, predictAction, formatDate, isWeekendStr, holidayMap]);
 
   useEffect(() => {
     setMounted(true);
@@ -158,538 +408,373 @@ export default function Attendance({
       totalC += s.conducted + imp.conducted;
       totalP += s.present + imp.present;
     });
-    const pct = totalC === 0 ? 0 : (totalP / totalC) * 100;
+    
+    // Add extra bunks from the quick slider simulator
+    const newTotalC = totalC + extraBunks;
+    const pct = newTotalC === 0 ? 0 : (totalP / newTotalC) * 100;
     
     const overallStats = getOverallStats(baseAttendance);
     const roast = getRandomRoast(overallStats.badge as any, "header");
     const emergencyRoast = getRandomRoast("cooked", "header");
     
-    return { percent: pct.toFixed(1), safe: pct >= 75, roast, emergencyRoast };
-  }, [baseAttendance, impactMap, isPredicting]);
+    return { 
+      percent: pct.toFixed(1), 
+      safe: pct >= 75, 
+      conducted: totalC, 
+      absent: totalC - totalP, 
+      roast, 
+      emergencyRoast 
+    };
+  }, [baseAttendance, impactMap, extraBunks]);
 
-  const calYear = currentCalDate.getFullYear();
-  const calMonth = currentCalDate.getMonth();
-  const monthName = currentCalDate.toLocaleString("en-US", { month: "long" });
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const startOffset = (new Date(calYear, calMonth, 1).getDay() + 6) % 7;
-  const formatDate = (y: number, m: number, d: number) =>
-    `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  const isWeekendStr = (dateStr: string) => {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const day = new Date(y, m - 1, d).getDay();
-    return day === 0 || day === 6;
-  };
+  const projectedDiff = useMemo(() => {
+    const origPct = getOverallStats(baseAttendance).pct;
+    const projPct = parseFloat(stats.percent);
+    const diff = projPct - origPct;
+    return (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%";
+  }, [baseAttendance, stats.percent]);
 
-  const holidayMap = useMemo(() => {
-    const calDataToUse =
-      academia?.calendarData?.length > 0
-        ? academia.calendarData
-        : calendarDataJson || [];
-    const map = new Map();
-    calDataToUse.forEach((ev: any) => {
-      if (!ev.date) return;
-      const d = new Date(ev.date);
-      if (isNaN(d.getTime())) return;
-      const normDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const rawOrder = ev.dayOrder || ev.day_order || ev.order;
-      if (
-        ev.type === "holiday" ||
-        rawOrder === "-" ||
-        rawOrder === "0" ||
-        ev.description?.toLowerCase().includes("holiday")
-      )
-        map.set(normDate, true);
-    });
-    return map;
-  }, [academia]);
-
-  const handleDateClick = (day: number) => {
-    const dStr = formatDate(calYear, calMonth, day);
-    if (isWeekendStr(dStr) || holidayMap.has(dStr)) return;
-    
-    if (!isRangeMode) {
-      setSelectedDates((prev) => {
-        const next = { ...prev };
-        if (next[dStr] === predictAction) {
-          delete next[dStr];
-        } else {
-          next[dStr] = predictAction;
-        }
-        return next;
-      });
-    } else {
-      if (!rangeStart || (rangeStart && rangeEnd)) {
-        setRangeStart(dStr);
-        setRangeEnd(null);
-        setSelectedDates((prev) => ({ ...prev, [dStr]: predictAction }));
-      } else {
-        setRangeEnd(dStr);
-        let start = new Date(
-          rangeStart.split("-")[0] as any,
-          Number(rangeStart.split("-")[1]) - 1,
-          Number(rangeStart.split("-")[2]),
-        );
-        let end = new Date(
-          dStr.split("-")[0] as any,
-          Number(dStr.split("-")[1]) - 1,
-          Number(dStr.split("-")[2]),
-        );
-        if (start > end) [start, end] = [end, start];
-        const range: Record<string, "leave" | "attend" | "od"> = {};
-        for (
-          let dt = new Date(start);
-          dt <= end;
-          dt.setDate(dt.getDate() + 1)
-        ) {
-          const s = formatDate(dt.getFullYear(), dt.getMonth(), dt.getDate());
-          if (!isWeekendStr(s) && !holidayMap.has(s)) range[s] = predictAction;
-        }
-        setSelectedDates((prev) => ({ ...prev, ...range }));
-      }
+  const adjustBunk = (val: number) => {
+    Haptics.selection();
+    const nextVal = extraBunks + val;
+    if (nextVal >= 0 && nextVal <= 15) {
+      setExtraBunks(nextVal);
     }
   };
 
   if (!mounted) return null;
 
-  return (
-    <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `.warning-dotted-rect { background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='24' ry='14' stroke='%23FF4D4D' stroke-width='3' stroke-dasharray='6%2c 10' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e"); border-radius: 24px; } .affected-dotted-border { border-style: dashed !important; border-width: 2px !important; border-color: color-mix(in srgb, var(--theme-text) 40%, transparent) !important; }`,
-        }}
-      />
-      <div className="absolute inset-0 bg-theme-bg overflow-hidden">
-        <div
-          className="fixed top-0 left-0 w-full flex justify-center pt-8 z-50 transition-opacity duration-300 pointer-events-none"
-          style={{
-            opacity: Math.min(pullY / 60, 1),
-            transform: `translateY(${pullY * 0.3}px)`,
-          }}
-        >
-          <Loader
-            className="w-6 h-6 text-theme-muted"
-            style={{
-              animation: isRefreshing ? "spin 1s linear infinite" : "none",
-              transform: `rotate(${pullY * 2}deg)`,
-            }}
-          />
-        </div>
+  const percentVal = parseFloat(stats.percent);
+  const overallColor = percentVal >= 85 ? "#6ee7f7" : percentVal >= 75 ? "#ffd061" : "#F43F5E";
+  const overallTheme = percentVal >= 85 ? "safe" : percentVal >= 75 ? "stable" : "cooked";
 
-        <motion.div
-          key={`attendance-content-${isPredicting}-${Object.keys(selectedDates).length}-${predictAction}`}
+  // SVG parameters
+  const radius = 88;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (Math.min(percentVal, 100) / 100) * circumference;
+
+  return (
+    <div className="absolute inset-0 bg-[#0f131f] text-[#dfe1f4] overflow-hidden select-none font-body-lg">
+      
+      {/* Ambient background glows */}
+      <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary-container/5 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* TopAppBar */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-lg border-b border-outline-variant/10 flex justify-between items-center px-5 h-16 w-full">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => { Haptics.light(); router.push("/"); }}
+            className="material-symbols-outlined text-primary-container hover:bg-primary/10 p-2 rounded-full transition-colors active:scale-90 shrink-0"
+          >
+            arrow_back
+          </button>
+          <h1 className="font-headline-lg-mobile text-[22px] font-black text-primary-container lowercase tracking-tight">
+            attendance
+          </h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full border border-outline-variant/20 overflow-hidden flex items-center justify-center bg-surface-container-high shrink-0 font-bold text-primary-container text-xs">
+            {stats.percent}%
+          </div>
+        </div>
+      </header>
+
+      {/* Scroll container */}
+      <div
+        className="absolute inset-0 overflow-y-auto no-scrollbar"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <motion.main 
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          style={{ y: pullY }}
-          className="h-full w-full overflow-y-auto no-scrollbar px-6 pt-10 pb-[180px] flex flex-col relative z-10"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          className="pt-24 pb-32 px-5 max-w-2xl mx-auto space-y-8"
         >
-          <motion.div
-            variants={itemVariants}
-            className="w-full flex flex-col items-center mt-2 mb-12 shrink-0"
-          >
-            <span
-              className="text-[12px] font-bold lowercase tracking-[0.3em] mb-3 text-theme-muted"
-              style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-            >
-              overall attendance
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span
-                className="text-[7.5rem] leading-[0.8] font-black tracking-tighter text-theme-text"
-                style={{
-                  fontFamily: "var(--font-montserrat), sans-serif",
-                }}
-              >
-                {stats.percent}
-              </span>
-              <span
-                className="text-[2.5rem] font-bold text-theme-muted"
-                style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-              >
-                %
-              </span>
+          {/* Circular progress gauge */}
+          <motion.section variants={itemVariants} className="glass-panel border border-primary-container/20 rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden shadow-xl">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary-container/5 blur-3xl rounded-full"></div>
+            
+            <div className="relative w-48 h-48 mb-6 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle className="text-surface-container-highest" cx="96" cy="96" fill="transparent" r={radius} stroke="currentColor" strokeWidth="8"></circle>
+                <motion.circle 
+                  className="text-primary-container" 
+                  cx="96" 
+                  cy="96" 
+                  fill="transparent" 
+                  r={radius} 
+                  stroke={overallColor} 
+                  strokeWidth="8"
+                  strokeDasharray={circumference}
+                  initial={{ strokeDashoffset: circumference }}
+                  animate={{ strokeDashoffset }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  strokeLinecap="round"
+                  style={{
+                    filter: `drop-shadow(0 0 4px ${overallColor}80)`
+                  }}
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="font-display-lg text-[36px] font-black text-primary-container" style={{ textShadow: "0 0 10px rgba(110, 231, 247, 0.3)" }}>
+                  {stats.percent}%
+                </span>
+                <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-widest font-extrabold mt-0.5">Aggregate</span>
+              </div>
             </div>
-          </motion.div>
 
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-col mb-8 w-full shrink-0"
-          >
+            <div className="grid grid-cols-2 gap-4 w-full">
+              <div className="glass-panel rounded-xl p-4 text-left border border-outline-variant/10">
+                <span className="font-label-caps text-[10px] text-on-surface-variant block mb-1 font-bold">Hours Conducted</span>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary-container text-[18px]">event_available</span>
+                  <span className="font-title-md text-[18px] text-primary font-black">{stats.conducted}</span>
+                </div>
+              </div>
+              <div className="glass-panel rounded-xl p-4 text-left border border-outline-variant/10">
+                <span className="font-label-caps text-[10px] text-on-surface-variant block mb-1 font-bold">Hours Absent</span>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-alert-rose text-[18px]">event_busy</span>
+                  <span className="font-title-md text-[18px] text-on-surface font-black">{stats.absent}</span>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Status roast card */}
+          <motion.section variants={itemVariants} className="glass-panel bg-primary-container/5 border border-primary-container/20 rounded-2xl p-6 flex items-start gap-4 shadow-md">
+            <div className="bg-primary-container/20 p-2.5 rounded-xl border border-primary-container/10 shrink-0 text-primary-container">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+            </div>
+            <div>
+              <h3 className="font-title-md text-[16px] font-bold text-primary-container mb-1 lowercase">
+                {overallTheme === "safe" ? "academic safety zone" : "caution advised"}
+              </h3>
+              <p className="font-body-sm text-[12.5px] text-on-surface-variant font-medium leading-relaxed">
+                {overallTheme === "safe" 
+                  ? (stats.roast || "your attendance rates are in the safe zone. maintain it!")
+                  : (stats.emergencyRoast || "caution! some courses need attention to keep above 75%.")}
+              </p>
+            </div>
+          </motion.section>
+
+          {/* Bunk Forecast Simulator */}
+          <motion.section variants={itemVariants} className="space-y-4">
+            <h2 className="font-title-md text-[18px] font-bold text-primary-container lowercase flex items-center gap-2 px-1">
+              <span className="material-symbols-outlined text-sm">analytics</span>
+              bunk forecast
+            </h2>
+            <div className="glass-panel rounded-2xl p-6 space-y-6 border border-outline-variant/10 shadow-md">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="font-label-caps text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">future classes to bunk</label>
+                  <span className="font-title-md text-[24px] font-black text-alert-rose" style={{ textShadow: "0 0 10px rgba(244,63,94,0.3)" }}>
+                    {extraBunks}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button 
+                    className="w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-high transition-colors text-lg active:scale-90"
+                    onClick={() => adjustBunk(-1)}
+                  >
+                    -
+                  </button>
+                  <input 
+                    className="flex-1 h-1 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary-container" 
+                    id="bunk-slider" 
+                    max="15" 
+                    min="0" 
+                    type="range" 
+                    value={extraBunks}
+                    onChange={(e) => { Haptics.selection(); setExtraBunks(parseInt(e.target.value)); }}
+                  />
+                  <button 
+                    className="w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-high transition-colors text-lg active:scale-90"
+                    onClick={() => adjustBunk(1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-outline-variant/15 flex justify-between items-center">
+                <div>
+                  <span className="font-label-caps text-[10px] text-on-surface-variant block uppercase tracking-wider">projected %</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-headline-lg text-[22px] font-black text-primary-container" style={{ textShadow: "0 0 8px rgba(110,231,247,0.3)" }}>{stats.percent}%</span>
+                    <span className="font-label-caps text-[10px] text-on-surface-variant font-bold">{projectedDiff}</span>
+                  </div>
+                </div>
+                <div className="h-10 w-[1px] bg-outline-variant/20"></div>
+                <div className="text-right">
+                  <span className="font-label-caps text-[10px] text-on-surface-variant block uppercase tracking-wider">status</span>
+                  <span className={`font-title-md text-[16px] font-bold mt-1 block ${percentVal >= 75 ? 'text-primary' : 'text-alert-rose animate-pulse'}`}>
+                    {percentVal >= 75 ? 'SAFE' : 'CRITICAL'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Date Picker predictor card */}
+          <motion.section variants={itemVariants} className="flex flex-col">
             {!isPredicting ? (
               <button
-                onClick={() => setIsPredictOverlay(true)}
-                className="w-full relative group transition-all duration-200"
+                onClick={() => { Haptics.selection(); setIsPredictOverlay(true); }}
+                className="w-full rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform glass-panel border border-primary-container/20 shadow-md"
               >
-                <div
-                  className="absolute inset-0 bg-theme-text rounded-[24px] translate-y-1.5 transition-transform group-hover:translate-y-2"
-                />
-                <div
-                  className="relative w-full border-[1.5px] border-theme-text bg-theme-bg text-theme-text rounded-[24px] p-4 flex items-center justify-between transition-transform group-hover:-translate-y-0.5 group-active:translate-y-1"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-theme-surface flex items-center justify-center">
-                      <Calculator
-                        size={20}
-                        strokeWidth={2.5}
-                        className="text-theme-text"
-                      />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span
-                        className="text-[14px] font-black uppercase tracking-widest leading-none"
-                        style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-                      >
-                        PREDICT
-                      </span>
-                      <span
-                        className="text-[10px] font-bold lowercase tracking-wider text-theme-muted mt-1"
-                        style={{ fontFamily: "var(--font-afacad), sans-serif" }}
-                      >
-                        calculate future attendance
-                      </span>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-container/10 border border-primary-container/25 text-primary-container">
+                    <Calculator size={18} strokeWidth={2.5} />
                   </div>
-                  <div
-                    className="w-9 h-9 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center"
-                    style={{ boxShadow: '2px 2px 0px var(--theme-text)' }}
-                  >
-                    <ChevronRightIcon
-                      size={20}
-                      strokeWidth={3}
-                      className="text-theme-text"
-                    />
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-[12px] font-black uppercase tracking-widest text-primary-container leading-none">PREDICT FUTURE</span>
+                    <span className="text-[9.5px] font-bold lowercase tracking-wider mt-1 text-on-surface-variant">simulate leaves and od impacts</span>
                   </div>
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-container/10 border border-primary-container/20 text-primary-container">
+                  <ChevronRightIcon size={16} strokeWidth={2.5} />
                 </div>
               </button>
             ) : (
               <div className="w-full relative group transition-all duration-200">
-                <div
-                  className="absolute inset-0 bg-theme-text rounded-[24px] translate-y-1.5"
-                />
-                <div
-                  className="relative w-full border-[1.5px] border-theme-text bg-theme-emphasis rounded-[24px] p-4 flex items-center justify-between"
-                >
+                <div className="absolute inset-0 bg-[#6EE7F7]/20 rounded-2xl blur-md opacity-40" />
+                <div className="relative w-full border border-primary-container bg-slate-950/90 rounded-2xl p-4 flex items-center justify-between shadow-xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-theme-bg-alpha flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-theme-bg animate-pulse" />
+                    <div className="w-9 h-9 rounded-full bg-primary-container/10 border border-primary-container/25 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary-container animate-pulse" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span
-                        className="text-[14px] font-black uppercase tracking-widest leading-none text-theme-bg"
-                        style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-                      >
-                        predicting
+                      <span className="text-[12px] font-black uppercase tracking-widest leading-none text-primary-container">
+                        simulating mode
                       </span>
-                      <span
-                        className="text-[10px] font-bold lowercase tracking-wider mt-1 text-theme-bg-70"
-                        style={{ fontFamily: "var(--font-afacad), sans-serif" }}
-                      >
-                        {selectedDates.length} days{" "}
-                        {predictAction === "leave" ? "off" : "present"}
+                      <span className="text-[9.5px] font-bold lowercase tracking-wider mt-1 text-on-surface-variant">
+                        {Object.keys(selectedDates).length} simulated days ({predictAction})
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setIsPredictOverlay(true)}
-                      className="w-9 h-9 rounded-full bg-theme-bg-alpha border border-theme-bg-10 flex items-center justify-center text-theme-bg transition-all"
+                      onClick={() => { Haptics.selection(); setIsPredictOverlay(true); }}
+                      className="w-8 h-8 rounded-full bg-primary-container/10 border border-primary-container/20 flex items-center justify-center text-primary-container active:scale-90 transition-transform"
                     >
-                      <ChevronRightIcon size={18} strokeWidth={2.5} />
+                      <ChevronRightIcon size={16} strokeWidth={2.5} />
                     </button>
                     <button
                       onClick={() => {
+                        Haptics.warning();
                         setIsPredicting(false);
                         setSelectedDates({});
                         setRangeStart(null);
                         setRangeEnd(null);
                       }}
-                      className="w-9 h-9 rounded-full bg-[#FF4D4D]/20 border border-[#FF4D4D]/20 flex items-center justify-center text-[#FF4D4D] transition-all"
+                      className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 active:scale-90 transition-transform"
                     >
-                      <X size={18} strokeWidth={2.5} />
+                      <X size={16} strokeWidth={2.5} />
                     </button>
                   </div>
                 </div>
               </div>
             )}
-          </motion.div>
-{actionRequired.length > 0 && (
-  <motion.div
-    key={`action-required-${isPredicting}-${Object.keys(selectedDates).length}-${predictAction}`}
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
-    className="w-full p-5 flex flex-col gap-4 mb-12 rounded-[32px] shrink-0 border-[2px] border-dashed"
-    style={{ 
-      borderColor: 'color-mix(in srgb, var(--theme-secondary) 50%, transparent)',
-      backgroundColor: 'color-mix(in srgb, var(--theme-secondary) 5%, transparent)',
-      borderDasharray: '12 16'
-    } as any}
-            >
-              <div className="flex items-center gap-3 w-full">
-                <span
-                  className="text-[12px] font-bold lowercase tracking-[0.25em] text-[#FF4D4D] whitespace-nowrap"
-                  style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-                >
-                  action required
-                </span>
-                <div className="flex-1 h-[1.5px] bg-[#FF4D4D]/20 rounded-full" />
-              </div>
-              {actionRequired.map((sub: any) => (
-                <div
-                  key={sub.id}
-                  className={`w-full bg-theme-surface border-[1.5px] rounded-[18px] p-4 flex flex-col shadow-sm transition-all ${isPredicting && sub.hasChanged ? "affected-dotted-border" : "border-[#FF4D4D]/20"}`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex flex-col items-center justify-center min-w-[80px] shrink-0">
-                      {isPredicting && sub.hasChanged && (
-                        <div className="flex items-center gap-1 mb-1.5 px-2 py-0.5 rounded-full bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
-                          <span className="text-[10px] font-bold opacity-40 text-[#FF4D4D]">
-                            {sub.originalVal}
-                          </span>
-                          <ChevronRightIcon size={8} className="opacity-40 text-[#FF4D4D]" />
-                          <span className="text-[10px] font-black text-[#FF4D4D]">
-                            {sub.val}
-                          </span>
-                        </div>
-                      )}
-                      <span
-                        className="text-[3.2rem] leading-[0.8] font-black tracking-tighter"
-                        style={{
-                          fontFamily: "var(--font-montserrat), sans-serif",
-                          color: "#FF4D4D",
-                        }}
-                      >
-                        {sub.val}
-                      </span>
-                      {sub.currentLabel === "recover" && sub.recoveryDate ? (
-                        <div className="mt-1.5 flex items-center gap-1 bg-[#FF4D4D]/10 px-2 py-0.5 rounded-full border border-[#FF4D4D]/10 whitespace-nowrap">
-                          <span className="text-[7px] font-black uppercase tracking-widest text-[#FF4D4D]/60">RECOVER :</span>
-                          <span className="text-[8.5px] font-black text-[#FF4D4D]">
-                            {new Date(sub.recoveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
-                          </span>
-                        </div>
-                      ) : (
-                        (!isPredicting || !sub.hasChanged) && (
-                          <span
-                            className="text-[10px] font-bold uppercase tracking-widest mt-1 text-center"
-                            style={{
-                              fontFamily: "var(--font-afacad), sans-serif",
-                              color: "#FF4D4Db3",
-                            }}
-                          >
-                            {sub.currentLabel}
-                          </span>
-                        )
-                      )}
-                    </div>
-                    <div className="flex-1 flex flex-col items-end text-right min-w-0 ml-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        {sub.isPractical && (
-                          <span
-                            className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-0.5 rounded-md"
-                            style={{ fontFamily: "var(--font-afacad), sans-serif" }}
-                          >
-                            practical
-                          </span>
-                        )}
-                        <span
-                          className="text-[16px] font-black uppercase tracking-widest leading-[1.1] truncate"
-                          style={{
-                            fontFamily: "var(--font-montserrat), sans-serif",
-                            color: "#FF4D4D",
-                          }}
-                        >
-                          {sub.displayCode}
-                        </span>
-                      </div>
-                      <span
-                        className="text-[12px] font-medium lowercase tracking-wide leading-[1.1] truncate w-full"
-                        style={{
-                          fontFamily: "var(--font-afacad), sans-serif",
-                          color: "#FF4D4Db3",
-                        }}
-                      >
-                        {sub.fullName}
-                      </span>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span
-                          className="text-[12px] font-bold opacity-70"
-                          style={{ color: "#FF4D4D" }}
-                        >
-                          {sub.present}/{sub.conducted}
-                        </span>
-                        <div
-                          className="w-[3px] h-[3px] rounded-full opacity-40"
-                          style={{ backgroundColor: "#FF4D4D" }}
-                        />
-                        <span
-                          className="text-[16px] font-black tracking-tighter"
-                          style={{
-                            fontFamily: "var(--font-montserrat), sans-serif",
-                            color: "#FF4D4D",
-                          }}
-                        >
-                          {sub.percent}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="w-full flex items-center justify-center gap-1.5 mt-1">
-                <UserAvatar seed={profileSeed} className="w-4 h-4 opacity-80" />
-                <div
-                  className="text-[11px] font-bold lowercase tracking-widest text-[#FF4D4D] opacity-80"
-                  style={{ fontFamily: "var(--font-afacad), sans-serif" }}
-                >
-                  {stats.emergencyRoast || "cooked."}
-                </div>
-              </div>
-            </motion.div>
-          )}
+          </motion.section>
 
-          <motion.div
-            key={`safe-subjects-${isPredicting}-${Object.keys(selectedDates).length}-${predictAction}`}
-            variants={containerVariants}
-            className="flex flex-col gap-3.5 w-full shrink-0"
-          >
-            <motion.div
-              variants={itemVariants}
-              className="flex items-center gap-3 mb-2 w-full px-1"
-            >
-              <span
-                className="text-[12px] font-bold lowercase tracking-[0.25em] text-theme-muted whitespace-nowrap"
-                style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
-              >
-                subjects
-              </span>
-              <div
-                className="flex-1 h-[1.5px] bg-theme-text-10 rounded-full"
-              />
-            </motion.div>
-            {safeSubjectsList.map((sub: any) => {
-              const isPrac = sub.isPractical;
-              const baseColor = isPrac ? "#0EA5E9" : "var(--theme-text)";
-              return (
-                <motion.div
-                  key={sub.id}
-                  variants={itemVariants}
-                  className={`w-full bg-theme-surface border-[1.5px] rounded-[24px] p-5 flex items-center justify-between shadow-sm transition-all ${isPredicting && sub.hasChanged ? "affected-dotted-border" : "border-theme-subtle"}`}
-                >
-                  <div className="flex flex-col items-center justify-center min-w-[80px] shrink-0">
-                    <span
-                      className="text-[3.2rem] leading-[0.8] font-black tracking-tighter"
-                      style={{
-                        fontFamily: "var(--font-montserrat), sans-serif",
-                        color: baseColor,
-                      }}
-                    >
-                      {sub.val}
-                    </span>
-                    {isPredicting && sub.hasChanged ? (
-                      <div className="flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full border bg-theme-surface border-theme-subtle">
-                        <span className="text-[10px] font-bold opacity-40" style={{ color: baseColor }}>
-                          {sub.originalVal}
-                        </span>
-                        <ChevronRightIcon size={8} className="opacity-40" style={{ color: baseColor }} />
-                        <span className="text-[10px] font-black" style={{ color: baseColor }}>
-                          {sub.val}
-                        </span>
-                      </div>
-                    ) : (
-                      <span
-                        className="text-[10px] font-bold uppercase tracking-widest mt-1 text-center"
-                        style={{
-                          fontFamily: "var(--font-afacad), sans-serif",
-                          color: isPrac ? "#0EA5E9b3" : "color-mix(in srgb, var(--theme-text) 40%, transparent)",
-                        }}
-                      >
-                        {sub.currentLabel}
-                      </span>
-                    )}
-                    {isPredicting && sub.hasChanged && sub.originalLabel !== sub.currentLabel && (
-                      <span className="text-[8px] font-black uppercase tracking-tighter mt-1 opacity-60 text-center" style={{ color: baseColor }}>
-                        {sub.originalLabel} → {sub.currentLabel}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 flex flex-col items-end text-right min-w-0 ml-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      {isPrac && (
-                        <span
-                          className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-0.5 rounded-md"
-                          style={{ fontFamily: "var(--font-afacad), sans-serif" }}
-                        >
-                          practical
-                        </span>
-                      )}
-                      <span
-                        className="text-[16px] font-black uppercase tracking-widest leading-[1.1] truncate"
-                        style={{
-                          fontFamily: "var(--font-montserrat), sans-serif",
-                          color: baseColor,
-                        }}
-                      >
-                        {sub.displayCode}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[13px] font-medium lowercase tracking-wide leading-[1.1] truncate w-full`}
-                      style={{
-                        fontFamily: "var(--font-afacad), sans-serif",
-                        color: isPrac ? "#0EA5E9b3" : "color-mix(in srgb, var(--theme-text) 50%, transparent)",
-                      }}
-                    >
-                      {sub.fullName}
-                    </span>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span
-                        className="text-[12px] font-bold opacity-70"
-                        style={{ color: baseColor }}
-                      >
-                        {sub.present}/{sub.conducted}
-                      </span>
-                      <div
-                        className="w-[3px] h-[3px] rounded-full opacity-40"
-                        style={{ backgroundColor: baseColor }}
+          {/* Sliding segmented control tabs */}
+          <motion.section variants={itemVariants} className="flex flex-col">
+            <div className="flex gap-1.5 p-1 rounded-full bg-slate-950/45 border border-white/5 shadow-inner">
+              {["all", "action", "safe"].map((tab) => {
+                const count = tab === "action" ? actionRequired.length : tab === "safe" ? safeSubjectsList.length : processedList.length;
+                const isAct = activeTab === tab;
+                
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => { Haptics.selection(); setActiveTab(tab as any); }}
+                    className="flex-1 py-2.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 relative z-10"
+                    style={{ color: isAct ? '#050814' : 'rgba(238,242,255,0.45)' }}
+                  >
+                    <span>{tab}</span>
+                    <span className="text-[8px] opacity-60">({count})</span>
+                    {isAct && (
+                      <motion.div
+                        layoutId="activeTabPill"
+                        className="absolute inset-0 bg-primary-container rounded-full -z-10 shadow-lg"
+                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
                       />
-                      <span
-                        className="text-[16px] font-black tracking-tighter"
-                        style={{
-                          fontFamily: "var(--font-montserrat), sans-serif",
-                          color: baseColor,
-                        }}
-                      >
-                        {sub.percent}%
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </motion.div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.section>
 
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="show"
-          className="absolute bottom-0 left-0 right-0 px-6 pt-24 pb-[30px] z-20 flex justify-between items-end pointer-events-none"
-          style={{ background: 'linear-gradient(to top, var(--theme-bg) 0%, color-mix(in srgb, var(--theme-bg) 80%, transparent) 60%, transparent 100%)' }}
-        >
-          {"attendance".split("").map((char, i) => (
-            <span
-              key={i}
-              className="text-[3.2rem] leading-[0.75] lowercase text-theme-text"
-              style={{ fontFamily: "var(--font-afacad), sans-serif", fontWeight: 400 }}
-            >
-              {char}
-            </span>
-          ))}
-        </motion.div>
+          {/* List display */}
+          <AnimatePresence mode="popLayout">
+            {(activeTab === "all" || activeTab === "action") && actionRequired.length > 0 && (
+              <motion.section
+                key={`action-required-list`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="w-full flex flex-col gap-4"
+              >
+                <div className="flex items-center gap-3 w-full px-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#FF4D4D] whitespace-nowrap">
+                    action required
+                  </span>
+                  <div className="flex-1 h-[1.5px] bg-[#FF4D4D]/15 rounded-full" />
+                </div>
+
+                {actionRequired.map((sub: any) => (
+                  <SubjectCard
+                    key={sub.id}
+                    sub={sub}
+                    isPredicting={isPredicting}
+                    isExpanded={expandedCard === sub.id}
+                    onToggle={() => { Haptics.selection(); setExpandedCard(expandedCard === sub.id ? null : sub.id); }}
+                  />
+                ))}
+
+                <div className="w-full flex items-center justify-center gap-2 mt-2 mb-2">
+                  <UserAvatar seed={profileSeed} className="w-5 h-5 opacity-70" />
+                  <div className="text-[11px] font-bold tracking-widest text-[#FF4D4D]/80">
+                    {stats.emergencyRoast || "academic danger zone."}
+                  </div>
+                </div>
+              </motion.section>
+            )}
+
+            {(activeTab === "all" || activeTab === "safe") && safeSubjectsList.length > 0 && (
+              <motion.section
+                key={`safe-subjects-list`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col w-full gap-4 pt-2"
+              >
+                <div className="flex items-center gap-3 w-full px-2 mb-1 mt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant whitespace-nowrap">
+                    safe subjects
+                  </span>
+                  <div className="flex-1 h-[1.5px] bg-white/5 rounded-full" />
+                </div>
+
+                {safeSubjectsList.map((sub: any) => (
+                  <SubjectCard
+                    key={sub.id}
+                    sub={sub}
+                    isPredicting={isPredicting}
+                    isExpanded={expandedCard === sub.id}
+                    onToggle={() => { Haptics.selection(); setExpandedCard(expandedCard === sub.id ? null : sub.id); }}
+                  />
+                ))}
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+        </motion.main>
       </div>
 
       <Predict
@@ -716,6 +801,6 @@ export default function Attendance({
         handleDateClick={handleDateClick}
         setIsPredicting={setIsPredicting}
       />
-    </>
+    </div>
   );
 }

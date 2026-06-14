@@ -1,14 +1,10 @@
 "use client";
 import React, { useState, useEffect, memo, useMemo } from "react";
-import { motion } from "framer-motion";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Target,
-  Calendar as CalendarIcon,
-} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useCalendarData } from "@/hooks/useCalendarData";
 import { Haptics } from "@/utils/shared/haptics";
+import calendarDataJson from "@/data/calendar_data.json";
 
 const BEZIER = [0.34, 0.15, 0.16, 0.96] as const;
 
@@ -16,12 +12,12 @@ const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.02, delayChildren: 0.01 },
+    transition: { staggerChildren: 0.04, delayChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: -20 },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
@@ -38,45 +34,45 @@ const CalendarDay = memo(
     onClick: (date: Date) => void;
   }) => {
     let bg = "bg-transparent";
-    let border = "border-[1.5px] border-transparent";
-    let dateColor = "text-theme-subtle";
-    let orderColor = "text-theme-subtle";
-    let scaleClass = "scale-100";
-    let shadowClass = "";
+    let border = "border border-transparent";
+    let dateColor = "text-[#dfe1f4]";
+    let orderColor = "text-on-surface-variant";
+    let borderDot: React.ReactNode = null;
+    let scaleClass = "scale-100 hover:scale-105";
+
+    const isMuted = item.isPast && !item.isSelected && !item.isToday;
 
     if (item.isSelected) {
       bg = item.isDayExam
-        ? "bg-theme-accent"
+        ? "bg-alert-rose"
         : item.isDayHoliday
-          ? "bg-theme-secondary"
-          : "bg-theme-highlight";
-      dateColor = "text-theme-bg font-black";
-      orderColor = "text-theme-bg opacity-70";
-      scaleClass = "scale-105";
-      shadowClass = `shadow-[0_8px_20px_var(${item.isDayExam ? "--theme-accent" : item.isDayHoliday ? "--theme-secondary" : "--theme-highlight"})] z-10 opacity-100`;
-      border = "border-transparent";
+          ? "bg-[#22C55E]"
+          : "bg-primary-container text-background";
+      dateColor = item.isDayExam || item.isDayHoliday ? "text-white font-black" : "text-background font-black";
+      orderColor = item.isDayExam || item.isDayHoliday ? "text-white/70" : "text-background/80";
+      scaleClass = "scale-105 z-10 shadow-md";
     } else if (item.isDayExam) {
-      bg = "bg-theme-accent/20";
-      border = "border-theme-accent/40";
-      dateColor = "text-theme-accent";
-      orderColor = "text-theme-accent/60";
+      bg = "bg-alert-rose/10";
+      border = "border-alert-rose/20";
+      dateColor = "text-alert-rose font-black";
+      orderColor = "text-alert-rose/60";
+      borderDot = <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-alert-rose shadow-[0_0_6px_#F43F5E]" />;
     } else if (item.isToday) {
-      border = "border-theme-highlight border-[2px]";
-      dateColor = "text-theme-text";
-      orderColor = "text-theme-muted";
+      border = "border-primary-container border-[2px]";
+      dateColor = "text-primary-container font-black";
+      orderColor = "text-primary-container/70";
     } else if (item.isDayHoliday) {
-      bg = "bg-theme-secondary/20";
-      border = "border-theme-secondary/40";
-      dateColor = "text-theme-secondary font-bold";
-      orderColor = "text-theme-secondary/60";
+      bg = "bg-emerald-500/5";
+      border = "border-emerald-500/10";
+      dateColor = "text-emerald-400 font-bold";
+      orderColor = "text-emerald-400/60";
     } else {
-      dateColor = "text-theme-text";
-      orderColor = "text-theme-muted";
       if (item.dayOrder) {
-        bg = "bg-theme-surface";
-        border = "border-theme-border";
+        bg = "glass-panel";
+        border = "border-outline-variant/10";
       }
     }
+
     return (
       <motion.button
         variants={itemVariants}
@@ -85,30 +81,25 @@ const CalendarDay = memo(
           Haptics.selection();
           item.dateObj && onClick(item.dateObj);
         }}
-        className={`aspect-square w-full rounded-[14px] flex flex-col items-center justify-center relative transition-colors ${bg} ${border} ${item.isPast && !item.isSelected && !item.isToday ? "opacity-40" : ""} ${scaleClass} ${shadowClass}`}
+        className={`aspect-square w-full rounded-xl flex flex-col p-2 items-start justify-between relative transition-all duration-200 ${bg} ${border} ${
+          isMuted ? "opacity-30" : "opacity-100"
+        } ${scaleClass}`}
+        style={{ minHeight: "56px" }}
       >
-        <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between pointer-events-none">
-          {item.dayOrder ? (
-            <span
-              className={`text-[10px] font-bold uppercase tracking-widest leading-none ${orderColor}`}
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
-            >
-              {item.dayOrder}
+        {borderDot}
+        <span className={`font-title-md text-[14px] font-bold ${dateColor}`}>
+          {item.day}
+        </span>
+        {item.dayOrder ? (
+          <div className="w-full text-left mt-auto">
+            <div className={`h-0.5 w-full rounded-full ${item.isSelected ? 'bg-background' : 'bg-primary-container'}`} />
+            <span className={`text-[6.5px] font-label-caps uppercase tracking-wider block mt-1 ${orderColor}`}>
+              order {item.dayOrder}
             </span>
-          ) : item.isDayHoliday ? (
-            <div
-              className={`w-1.5 h-1.5 rounded-full ${item.isSelected ? "bg-theme-bg" : "bg-[#FF4D4D]"}`}
-            />
-          ) : null}
-        </div>
-        <div className="flex items-center justify-center mt-2.5">
-          <span
-            className={`text-[20px] font-black ${dateColor}`}
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            {item.day}
-          </span>
-        </div>
+          </div>
+        ) : item.isDayHoliday && !item.isSelected ? (
+          <span className="text-[6.5px] font-label-caps uppercase tracking-wider text-emerald-400 font-bold block mt-auto">holiday</span>
+        ) : null}
       </motion.button>
     );
   },
@@ -120,7 +111,8 @@ const CalendarDay = memo(
 );
 CalendarDay.displayName = "CalendarDay";
 
-const Calendar = ({ data, academia }: any) => {
+export default function Calendar({ data, academia }: any) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const activeData = useMemo(() => 
     academia?.calendarData || data?.calendarData || [], 
@@ -135,8 +127,8 @@ const Calendar = ({ data, academia }: any) => {
       String(profile.semester) === "4",
     [profile],
   );
+  
   const {
-    theme,
     display,
     monthTitle,
     handlePrevMonth,
@@ -149,170 +141,132 @@ const Calendar = ({ data, academia }: any) => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
   if (!mounted) return null;
 
-  const header = theme;
-
   return (
-    <>
-      <div
-        className="absolute inset-0 bg-theme-bg overflow-hidden flex flex-col"
-      >
-        <motion.div
+    <div className="absolute inset-0 bg-[#0f131f] text-[#dfe1f4] overflow-hidden select-none font-body-lg">
+      
+      {/* TopAppBar */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-lg border-b border-outline-variant/10 flex justify-between items-center px-5 h-16 w-full">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => { Haptics.light(); router.push("/"); }}
+            className="material-symbols-outlined text-primary-container hover:bg-primary/10 p-2 rounded-full transition-colors active:scale-90 shrink-0"
+          >
+            arrow_back
+          </button>
+          <h1 className="font-headline-lg-mobile text-[22px] font-black text-primary-container lowercase tracking-tight">
+            almanac
+          </h1>
+        </div>
+        <button 
+          onClick={() => { Haptics.light(); goToToday(); }}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary-container hover:bg-primary/20 transition-colors active:scale-95 border border-primary-container/10"
+        >
+          <span className="material-symbols-outlined">target</span>
+        </button>
+      </header>
+
+      {/* Scrollable Container */}
+      <div className="absolute inset-0 overflow-y-auto no-scrollbar">
+        <motion.main 
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="h-full w-full overflow-y-auto no-scrollbar px-5 pt-8 pb-[100px] flex flex-col gap-6 relative z-10"
+          className="pt-20 pb-32 px-5 max-w-4xl mx-auto space-y-6"
         >
-          <motion.div
-            variants={itemVariants}
-            className={`w-full rounded-[32px] p-6 flex flex-col shadow-sm shrink-0 border-[1.5px] ${header.bg} ${header.border} justify-between transition-colors duration-500`}
-          >
-            <div className="self-start">
-              <div
-                className={`px-4 py-2 rounded-full flex items-center gap-2 ${header.accent}`}
-              >
-                <CalendarIcon size={16} className={header.text} />
-                <span
-                  className={`text-[14px] font-bold uppercase tracking-widest ${header.text}`}
-                  style={{ fontFamily: "'Afacad', sans-serif" }}
-                >
+          {/* Month Selector Card */}
+          <motion.section variants={itemVariants} className="flex items-center justify-between glass-panel p-4 rounded-xl border border-primary-container/10 shadow-md shrink-0">
+            <button 
+              onClick={() => { Haptics.light(); handlePrevMonth(); }}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-variant transition-all active:scale-90 text-primary-container"
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <div className="text-center">
+              <h2 className="font-headline-lg-mobile text-[18px] font-black text-on-surface lowercase leading-none">
+                {monthTitle}
+              </h2>
+              <p className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 font-bold">Academic Year 2025-26</p>
+            </div>
+            <button 
+              onClick={() => { Haptics.light(); handleNextMonth(); }}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-variant transition-all active:scale-90 text-primary-container"
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </motion.section>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Calendar Grid Section */}
+            <motion.section variants={itemVariants} className="md:col-span-2 glass-panel p-5 rounded-xl border border-primary-container/10 shadow-md">
+              <div className="grid grid-cols-7 mb-4 gap-2">
+                {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d, i) => (
+                  <div
+                    key={i}
+                    className={`text-center font-label-caps text-[10px] uppercase tracking-wider font-extrabold ${
+                      i >= 5 ? 'text-alert-rose' : 'text-on-surface-variant/70'
+                    }`}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {gridData.map((item: any) =>
+                  item.type === "padding" ? (
+                    <div key={item.key} className="w-full aspect-square" />
+                  ) : (
+                    <CalendarDay
+                      key={item.key}
+                      item={item}
+                      onClick={handleDateClick}
+                    />
+                  ),
+                )}
+              </div>
+            </motion.section>
+
+            {/* Selected Date Event details card */}
+            <motion.section variants={itemVariants} className="md:col-span-1 glass-panel border border-primary-container/15 rounded-xl p-5 shadow-lg flex flex-col justify-between min-h-[180px]">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-950/40 border border-outline-variant/10 text-on-surface-variant/80 font-label-caps">
                   {display.pill}
                 </span>
-              </div>
-            </div>
-            <div className="flex items-end w-full gap-5 mt-8">
-              <div className="flex flex-col shrink-0">
-                <span
-                  className={`text-[13px] font-bold uppercase tracking-[0.2em] ${header.text} opacity-70 mb-2 ml-1`}
-                  style={{ fontFamily: "'Afacad', sans-serif" }}
-                >
-                  {display.label}
-                </span>
-                <div className="flex items-baseline gap-1">
-                  <span
-                    className={`text-[7rem] leading-[0.75] font-black tracking-tighter ${header.text}`}
-                    style={{ fontFamily: "'Montserrat', sans-serif" }}
-                  >
-                    {display.bigText}
+                <div className="mt-4 text-left">
+                  <span className="text-[9.5px] font-bold uppercase tracking-widest text-on-surface-variant/60 block mb-1">
+                    {display.label}
                   </span>
+                  <h3 className="text-[28px] font-black uppercase tracking-tight text-white leading-none">
+                    {display.bigText}
+                  </h3>
                 </div>
               </div>
-              <div className="flex flex-col justify-end pb-1.5 flex-1 min-w-0 pl-2">
-                <span
-                  className={`text-[32px] font-black uppercase tracking-widest leading-none mb-3 ${header.text} break-words`}
-                  style={{ fontFamily: "'Montserrat', sans-serif" }}
-                >
+              
+              <div className="mt-6 pt-4 border-t border-outline-variant/10 text-left">
+                <p className="text-[15px] font-black text-primary-container lowercase leading-tight mb-2">
                   {display.infoMain}
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {display.infoSub
-                    .split(" / ")
-                    .map((sub: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className={`text-[16px] font-bold lowercase tracking-wide leading-snug ${header.text} opacity-90 flex items-start gap-2`}
-                        style={{ fontFamily: "'Afacad', sans-serif" }}
-                      >
-                        {display.infoSub.includes("/") && (
-                          <span className="mt-2 w-1 h-1 rounded-full bg-current opacity-50 shrink-0" />
-                        )}
-                        {sub.trim()}
-                      </span>
-                    ))}
+                </p>
+                <div className="space-y-1">
+                  {display.infoSub.split(" / ").map((sub: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="text-[12.5px] font-semibold text-on-surface-variant flex items-center gap-1.5 lowercase"
+                    >
+                      {display.infoSub.includes("/") && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-container shrink-0" />
+                      )}
+                      {sub.trim()}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
-          </motion.div>
-          <motion.div
-            variants={itemVariants}
-            className="flex-1 bg-theme-surface border-theme-subtle border-[1.5px] rounded-[32px] p-5 flex flex-col shadow-sm shrink-0"
-          >
-            <div className="flex justify-between items-center mb-6 w-full shrink-0">
-              <span
-                className="text-[20px] font-black uppercase tracking-widest text-theme-text ml-2"
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                {monthTitle}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    Haptics.light();
-                    handlePrevMonth();
-                  }}
-                  className="w-10 h-10 bg-theme-card rounded-full flex items-center justify-center text-theme-text transition-all"
-                >
-                  <ChevronLeft size={20} strokeWidth={2.5} />
-                </button>
-                <button
-                  onClick={() => {
-                    Haptics.light();
-                    goToToday();
-                  }}
-                  className="w-10 h-10 bg-theme-text text-theme-bg rounded-full flex items-center justify-center transition-all hover:opacity-90"
-                >
-                  <Target size={18} strokeWidth={2.5} />
-                </button>
-                <button
-                  onClick={() => {
-                    Haptics.light();
-                    handleNextMonth();
-                  }}
-                  className="w-10 h-10 bg-theme-card rounded-full flex items-center justify-center text-theme-text transition-all"
-                >
-                  <ChevronRight size={20} strokeWidth={2.5} />
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-2 mb-4 shrink-0">
-              {["m", "t", "w", "t", "f", "s", "s"].map((d, i) => (
-                <div
-                  key={i}
-                  className="text-center text-[12px] font-bold text-theme-muted uppercase tracking-widest"
-                  style={{ fontFamily: "'Afacad', sans-serif" }}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-2 gap-y-3 content-start">
-              {gridData.map((item: any) =>
-                item.type === "padding" ? (
-                  <div key={item.key} className="w-full aspect-square" />
-                ) : (
-                  <CalendarDay
-                    key={item.key}
-                    item={item}
-                    onClick={handleDateClick}
-                  />
-                ),
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-        <div
-          className="absolute bottom-0 left-0 right-0 h-48 z-20 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, var(--theme-bg) 0%, color-mix(in srgb, var(--theme-bg) 80%, transparent) 60%, transparent 100%)' }}
-        />
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="show"
-          className="absolute bottom-0 left-0 right-0 px-6 pb-[30px] z-30 flex justify-between items-end pointer-events-none"
-        >
-          {"calendar".split("").map((char, i) => (
-            <span
-              key={i}
-              className="text-[3.2rem] leading-[0.75] lowercase text-theme-text"
-              style={{ fontFamily: "'Afacad', sans-serif", fontWeight: 400 }}
-            >
-              {char}
-            </span>
-          ))}
-        </motion.div>      </div>
-    </>
+            </motion.section>
+          </div>
+        </motion.main>
+      </div>
+    </div>
   );
-};
-
-export default Calendar;
+}

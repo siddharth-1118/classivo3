@@ -352,10 +352,10 @@ const MobileAttendance = ({
               </div>
               <div className="my-auto flex flex-col justify-center">
                 <div className="flex items-baseline gap-3">
-                  <span className={`text-[22vw] md:text-[9rem] leading-[0.8] font-black tracking-tighter transition-colors duration-300 ease-out ${themeColorClass}`} style={{ fontFamily: "Urbanosta" }}>
+                  <span className={`text-[22vw] md:text-[9rem] leading-[0.8] font-black tracking-tighter transition-colors duration-300 ease-out ${themeColorClass}`} >
                     <MarginCounter value={currentActiveStat.val} />h
                   </span>
-                  <span className={`text-xl md:text-2xl font-bold lowercase opacity-70 transition-colors duration-300 ${themeColorClass}`} style={{ fontFamily: "Aonic" }}>
+                  <span className={`text-xl md:text-2xl font-bold lowercase opacity-70 transition-colors duration-300 ${themeColorClass}`} >
                     {currentActiveStat.label}
                   </span>
                 </div>
@@ -369,7 +369,7 @@ const MobileAttendance = ({
                 )}
               </div>
               <div className="pb-1">
-                <h3 className="text-2xl md:text-3xl font-bold lowercase leading-tight mb-3 line-clamp-1 text-white" style={{ fontFamily: "Aonic" }}>
+                <h3 className="text-2xl md:text-3xl font-bold lowercase leading-tight mb-3 line-clamp-1 text-white" >
                   {activeSubject.title?.toLowerCase()}
                 </h3>
                 <div className="w-full h-[4px] bg-white/10 mb-2 relative overflow-hidden rounded-full">
@@ -400,11 +400,11 @@ const MobileAttendance = ({
                 <div className="flex flex-col">
                   <span className="font-mono text-[10px] lowercase tracking-widest font-bold text-white/40 mb-1">prediction active</span>
                   <div className="flex items-center gap-2">
-                    <span className={`text-2xl font-black lowercase ${predType === "leave" ? "text-[#ff003c]" : "text-[#ceff1c]"}`} style={{ fontFamily: "Urbanosta" }}>
+                    <span className={`text-2xl font-black lowercase ${predType === "leave" ? "text-[#ff003c]" : "text-[#ceff1c]"}`} >
                       {predType === "leave" ? "leave" : "attend"}
                     </span>
                     <span className="text-white/20 text-xl font-bold">/</span>
-                    <span className="text-white/60 text-xl font-bold lowercase" style={{ fontFamily: "Aonic" }}>{Object.keys(selectedDates).length} days</span>
+                    <span className="text-white/60 text-xl font-bold lowercase" >{Object.keys(selectedDates).length} days</span>
                   </div>
                 </div>
                 <button
@@ -417,10 +417,10 @@ const MobileAttendance = ({
 
               <div className="my-auto flex flex-col justify-center">
                 <div className="flex items-baseline gap-3">
-                  <span className={`text-[22vw] md:text-[9rem] leading-[0.8] font-black tracking-tighter transition-colors duration-300 ease-out ${themeColorClass}`} style={{ fontFamily: "Urbanosta" }}>
+                  <span className={`text-[22vw] md:text-[9rem] leading-[0.8] font-black tracking-tighter transition-colors duration-300 ease-out ${themeColorClass}`} >
                     <MarginCounter value={currentActiveStat.val} />h
                   </span>
-                  <span className={`text-xl md:text-2xl font-bold lowercase opacity-70 transition-colors duration-300 ${themeColorClass}`} style={{ fontFamily: "Aonic" }}>
+                  <span className={`text-xl md:text-2xl font-bold lowercase opacity-70 transition-colors duration-300 ${themeColorClass}`} >
                     {currentActiveStat.label}
                   </span>
                 </div>
@@ -435,7 +435,7 @@ const MobileAttendance = ({
               </div>
 
               <div className="pb-1">
-                <h3 className="text-2xl md:text-3xl font-bold lowercase leading-tight mb-3 line-clamp-1 text-white" style={{ fontFamily: "Aonic" }}>
+                <h3 className="text-2xl md:text-3xl font-bold lowercase leading-tight mb-3 line-clamp-1 text-white" >
                   {activeSubject.title?.toLowerCase()}
                 </h3>
                 <div className="w-full h-[4px] bg-white/10 mb-2 relative overflow-hidden rounded-full">
@@ -494,11 +494,11 @@ const MobileAttendance = ({
                 `}
               >
                 <div className="flex justify-between items-end mb-3">
-                  <h4 className="text-lg font-bold lowercase truncate max-w-[60%]" style={{ fontFamily: "Aonic" }}>
+                  <h4 className="text-lg font-bold lowercase truncate max-w-[60%]" >
                     {subject.title?.toLowerCase()}
                   </h4>
                   <div className="flex flex-col items-end min-w-[80px]">
-                    <span className={`text-2xl font-black leading-none transition-colors duration-300 ${isSafe ? "text-[#050505]" : "text-[#ff003c]"}`} style={{ fontFamily: "Urbanosta" }}>
+                    <span className={`text-2xl font-black leading-none transition-colors duration-300 ${isSafe ? "text-[#050505]" : "text-[#ff003c]"}`} >
                       {isPredicting ? predData.status.val : Math.floor(parseFloat(subject.percentage)) + "%"}
                     </span>
                     {isPredicting && (
@@ -543,10 +543,10 @@ const MobileAttendance = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.4 }}
             >
-              <h1 className={`text-6xl font-black lowercase tracking-tighter mb-2 ${overallStats.color}`} style={{ fontFamily: "Aonic" }}>
+              <h1 className={`text-6xl font-black lowercase tracking-tighter mb-2 ${overallStats.color}`} >
                 {overallStats.badge}
               </h1>
-              <div className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%] flex items-center gap-2" style={{ fontFamily: "Aonic" }}>
+              <div className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%] flex items-center gap-2" >
                 <UserAvatar seed={profileSeed} className="w-6 h-6 shrink-0" />
                 {overallStats.tagline}
               </div>

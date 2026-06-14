@@ -6,10 +6,15 @@ import { AcademiaData } from "@/types";
 import { compareData, DataDiff } from "@/utils/shared/diffUtils";
 import { sendNotification } from "@/utils/shared/notifs";
 import { fetchWithLoadBalancer } from "@/utils/backendProxy";
+import { isOutdated } from "@/utils/shared/version";
 import { UpdateHistoryItem } from "@/types";
+import { supabase } from "@/lib/supabase";
 
 import { getScheduleStatus } from "@/utils/academia/academiaLogic";
 import calendarDataJson from "@/data/calendar_data.json";
+
+
+// Removed local supabase init, using shared client from @/lib/supabase
 
 interface AppContextType {
   userData: AcademiaData | null;
@@ -34,6 +39,7 @@ interface AppContextType {
   setUpdateHistory: (history: UpdateHistoryItem[]) => void;
   isUpdateHistoryOpen: boolean;
   setIsUpdateHistoryOpen: (open: boolean) => void;
+  isInitialized: boolean;
   deferredPrompt: any;
   canInstall: boolean;
   setCanInstall: (val: boolean) => void;
@@ -48,8 +54,26 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [userData, setUserData] = useState<any>(null);
-  const [customDisplayName, setCustomDisplayName] = useState("");
+  const [userData, setUserData] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("ratio_data");
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          console.error("Failed to parse cached data", e);
+          return null;
+        }
+      }
+    }
+    return null;
+  });
+  const [customDisplayName, setCustomDisplayName] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ratiod_custom_name") || "";
+    }
+    return "";
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isBackendError, setIsBackendError] = useState(false);
@@ -57,11 +81,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [latestDiff, setLatestDiff] = useState<DataDiff | null>(null);
   const [updateHistory, setUpdateHistory] = useState<UpdateHistoryItem[]>([]);
   const [isUpdateHistoryOpen, setIsUpdateHistoryOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [loginPromise, setLoginPromise] = useState<Promise<any> | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [canInstall, setCanInstall] = useState<boolean>(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [profileSeed, setProfileSeed] = useState<string>("");
+  const [profileSeed, setProfileSeed] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ratio_profile_seed") || "";
+    }
+    return "";
+  });
   const updateInProgress = React.useRef(false);
   const sessionNotificationsSent = React.useRef<Set<string>>(new Set());
   const classNotificationsSent = React.useRef<Set<string>>(new Set());
@@ -76,6 +106,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     return history.filter(item => item.timestamp >= twoDaysAgo.getTime());
   };
+
+  // Realtime listener for Admin Notifications
+  useEffect(() => {
+    // Initial check for any active force updates
+    const checkForceUpdate = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('type', 'force_update')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const update = data[0];
+          // Only show force-update overlay if this app version is outdated
+          const minVer = update.min_version || "";
+          const shouldBlock = minVer ? isOutdated(minVer) : true; // legacy: no min_version = always block
+
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          if (new Date(update.created_at) > sevenDaysAgo && shouldBlock) {
+            window.dispatchEvent(new CustomEvent("force_update_triggered", {
+              detail: { title: update.title, message: update.message, url: update.url, minVersion: minVer }
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error checking force update:", err);
+      }
+    };
+
+    checkForceUpdate();
+
+    const channel = supabase
+      .channel('broadcasts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
+        const { title, message, type, url, min_version } = payload.new;
+
+        if (type === "force_update" && url) {
+          // Only block if this app version is older than the required min version
+          const minVer = min_version || "";
+          const shouldBlock = minVer ? isOutdated(minVer) : true;
+          if (shouldBlock) {
+            window.dispatchEvent(new CustomEvent("force_update_triggered", {
+              detail: { title, message, url, minVersion: minVer }
+            }));
+          }
+        } else {
+          // Regular broadcast — show in-app toast + push notification
+          sendNotification(
+            title || "New Message",
+            message || "You have a new update from Admin.",
+            "admin-broadcast"
+          );
+          window.dispatchEvent(new CustomEvent("admin_broadcast_received", {
+            detail: { title, message }
+          }));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem("ratio_update_history");
@@ -183,18 +280,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (response.status === 503 || response.status === 429) {
           setIsBackendError(true);
           try {
-            const data = await response.json();
+            const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server returned an invalid response (HTML). Please check ngrok.");
+        }
+
+        const data = await response.json();
             if (data.detail) setBackendErrorMsg(data.detail);
           } catch {}
           throw new Error("Backend error");
         }
-        
-        const data = await response.json();
+
+        const text = await response.text();
+        if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+          throw new Error("Server returned HTML instead of data. Please check if your backend is running.");
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error("Failed to parse server response. The server might be down or misconfigured.");
+        }
         if (!response.ok || !data.success) {
           if (typeof data.detail === "object" && data.detail !== null) {
             throw data.detail;
           }
           throw new Error(data.detail || "Login failed");
+        }
+
+        // Inject email into profile object
+        if (data.profile) {
+          data.profile.email = creds.username;
+        }
+
+        // Track user in Supabase
+        if (data.profile) {
+          try {
+            await supabase
+              .from('users')
+              .upsert({
+                email: creds.username,
+                name: data.profile.name || "Unknown",
+                department: data.profile.dept || null,
+                year: data.profile.semester || null,
+                campus: data.profile.program || null,
+                phone_number: data.profile.mobile || null
+              }, { onConflict: 'email' });
+          } catch (e) {
+            console.error("User tracking failed", e);
+          }
         }
 
         if (data.cookies) {
@@ -212,9 +347,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("ratio_data", JSON.stringify(data));
 
         return data;
-      } catch (err) {
+      } catch (err: any) {
         if (navigator.onLine) {
           setIsBackendError(true);
+          setBackendErrorMsg(err.message || "Connection Refused");
         }
         throw err;
       }
@@ -245,16 +381,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.status === 503 || response.status === 429) {
         setIsBackendError(true);
         try {
-          const data = await response.json();
+          const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server returned an invalid response (HTML). Please check ngrok.");
+        }
+
+        const data = await response.json();
           if (data.detail) setBackendErrorMsg(data.detail);
         } catch {}
         return existingData;
       }
 
-      const result = await response.json();
+      const text = await response.text();
+      if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+        return existingData;
+      }
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        return existingData;
+      }
       if (!result.success) {
         if (response.status === 401) {
-          await logout();
+          // Temporarily disabled to prevent accidental logouts
+          // await logout();
+          console.warn("Unauthorized in refreshData, but skipping logout for now.");
         }
         return existingData;
       }
@@ -309,6 +462,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
       }
 
+      // Inject email into profile object
+      if (mergedData.profile) {
+        mergedData.profile.email = creds.username;
+      }
+
+      // Track user in Supabase on refresh
+      if (mergedData.profile) {
+        try {
+          await supabase
+            .from('users')
+            .upsert({
+              email: creds.username,
+              name: mergedData.profile.name || "Unknown",
+              department: mergedData.profile.dept || null,
+              year: mergedData.profile.semester || null,
+              campus: mergedData.profile.program || null,
+              phone_number: mergedData.profile.mobile || null
+            }, { onConflict: 'email' });
+        } catch (e) {
+          console.error("User tracking failed on refresh", e);
+        }
+      }
+
       setUserData(mergedData);
       localStorage.setItem("ratio_data", JSON.stringify(mergedData));
       return mergedData;
@@ -324,41 +500,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
-    const cachedData = localStorage.getItem("ratio_data");
-    const cachedName = localStorage.getItem("ratiod_custom_name");
-    const cachedSeed = localStorage.getItem("ratio_profile_seed");
-
-    if (cachedName) setCustomDisplayName(cachedName);
-
     const onboarded = localStorage.getItem("ratiod_onboarded") === "true";
     if (onboarded) {
       document.cookie = "ratio_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
     }
 
-    let parsed: any = null;
-    if (cachedData) {
-      try {
-        parsed = JSON.parse(cachedData);
-        setUserData(parsed);
-        
-        const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
-        if (creds && !hasRefreshed.current) {
-          hasRefreshed.current = true;
-          setTimeout(() => {
-            refreshData(creds, parsed);
-          }, 2000);
-        }
-      } catch {
+    if (userData) {
+      const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
+      if (creds && !hasRefreshed.current) {
+        hasRefreshed.current = true;
+        setTimeout(() => {
+          refreshData(creds, userData);
+        }, 2000);
       }
     }
 
-    if (cachedSeed) {
-      setProfileSeed(cachedSeed);
-    } else if (parsed && parsed.profile && parsed.profile.name) {
-      const initialSeed = parsed.profile.name;
-      setProfileSeed(initialSeed);
-      localStorage.setItem("ratio_profile_seed", initialSeed);
-    }
+    setIsInitialized(true);
 
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -422,7 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   }, [latestDiff]);
 
-const value = useMemo(() => ({
+  const value = useMemo(() => ({
     userData,
     setUserData,
     customDisplayName,
@@ -445,6 +602,7 @@ const value = useMemo(() => ({
     setUpdateHistory,
     isUpdateHistoryOpen,
     setIsUpdateHistoryOpen,
+    isInitialized,
     deferredPrompt,
     canInstall,
     setCanInstall,
@@ -454,7 +612,7 @@ const value = useMemo(() => ({
     profileSeed,
     setProfileSeed,
     calendarData,
-  }), [userData, customDisplayName, isUpdating, isOffline, isBackendError, backendErrorMsg, refreshData, performLogin, loginPromise, logout, latestDiff, updateHistory, isUpdateHistoryOpen, deferredPrompt, canInstall, showWelcome, profileSeed, calendarData]);
+  }), [userData, customDisplayName, isUpdating, isOffline, isBackendError, backendErrorMsg, refreshData, performLogin, loginPromise, logout, latestDiff, updateHistory, isUpdateHistoryOpen, deferredPrompt, canInstall, showWelcome, profileSeed, calendarData, isInitialized]);
 
   return (
     <AppContext.Provider value={value}>

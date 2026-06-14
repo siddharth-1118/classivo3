@@ -1,112 +1,29 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
+import fs from "fs";
+import path from "path";
 
-const revision = Date.now().toString();
+const hasGoogleServices = fs.existsSync(path.resolve(process.cwd(), "android/app/google-services.json"));
 
-const withPWA = withPWAInit({
+const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-  cacheOnFrontEndNav: false,
-  aggressiveFrontEndNavCaching: false,
-  reloadOnOnline: true,
-  fallbacks: {
-    image: "/icons/icon-192.png",
-  },
-  workboxOptions: {
-    skipWaiting: true,
-    clientsClaim: true,
-    runtimeCaching: [
-      {
-        urlPattern: ({ request }) => request.mode === 'navigate',
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "pages",
-          expiration: {
-            maxEntries: 64,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: ({ request, url }) => {
-          const isSameOrigin = self.origin === url.origin;
-          return isSameOrigin && (
-            request.headers.get('RSC') === '1' || 
-            url.searchParams.has('_rsc') ||
-            url.pathname.startsWith('/_next/data/')
-          );
-        },
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "next-data",
-          expiration: {
-            maxEntries: 256,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "static-image-assets",
-          expiration: {
-            maxEntries: 128,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /\/_next\/static.+\.js$/i,
-        handler: "CacheFirst",
-        options: {
-          cacheName: "next-static-js-assets",
-          expiration: {
-            maxEntries: 128,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /\/_next\/static.+\.css$/i,
-        handler: "CacheFirst",
-        options: {
-          cacheName: "next-static-style-assets",
-          expiration: {
-            maxEntries: 64,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /\/api\/.*$/i,
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "apis",
-          expiration: {
-            maxEntries: 64,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /.*/i,
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "others",
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-    ],
-  },
+  disable: true, // Always disable PWA/Service Worker generation to prevent conflicts inside native Capacitor apps
+  register: false,
+  skipWaiting: true,
 });
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'export',
+  images: {
+    unoptimized: true,
+  },
+  devIndicators: {
+    position: "bottom-right",
+  },
+  allowedDevOrigins: ["nancey-pandemoniacal-candra.ngrok-free.dev", "srm-nest-bridge.loca.lt", "*.loca.lt"],
+  env: {
+    NEXT_PUBLIC_FCM_ENABLED: String(hasGoogleServices),
+  },
 };
 
 export default withPWA(nextConfig);

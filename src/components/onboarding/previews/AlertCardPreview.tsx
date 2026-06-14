@@ -56,7 +56,7 @@ export default function AlertCardPreview({ onInteraction }: { onInteraction?: ()
             </div>
             <BellRing size={14} className="text-[#4A3A32]/40" />
           </div>
-          <span className="text-[18px] font-black tracking-tighter text-[#4A3A32] leading-tight mb-3" style={{ fontFamily: "var(--font-montserrat)" }}>
+          <span className="text-[18px] font-black tracking-tighter text-[#4A3A32] leading-tight mb-3" >
             ct-2 tomorrow
           </span>
           <div className="bg-[#4A3A32]/5 rounded-xl p-3 border border-[#4A3A32]/10">
@@ -89,7 +89,7 @@ export default function AlertCardPreview({ onInteraction }: { onInteraction?: ()
               <Bell size={14} className="text-[#4A3A32]/40" />
             </div>
             
-            <span className="text-[18px] font-black tracking-tighter text-[#4A3A32] leading-tight mb-1" style={{ fontFamily: "var(--font-montserrat)" }}>
+            <span className="text-[18px] font-black tracking-tighter text-[#4A3A32] leading-tight mb-1" >
               class starts now
             </span>
             <span className="text-[10px] font-bold text-[#4A3A32]/40 uppercase tracking-widest mb-4">
@@ -98,7 +98,7 @@ export default function AlertCardPreview({ onInteraction }: { onInteraction?: ()
 
             <div
               className="w-full py-3 bg-[#4A3A32] text-[#EADFD4] rounded-xl font-black lowercase text-[11px] tracking-widest flex items-center justify-center gap-2"
-              style={{ fontFamily: 'var(--font-montserrat)' }}
+              
             >
               {permission === "default" ? "allow notifs" : permission === "granted" ? "synced" : "denied"}
             </div>

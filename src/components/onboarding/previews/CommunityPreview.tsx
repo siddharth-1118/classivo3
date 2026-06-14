@@ -18,8 +18,7 @@ export default function CommunityPreview() {
             type: "spring",
             stiffness: 260,
             damping: 20,
-            delay: 0.5,
-          }}
+            delay: 0.5 }}
           className="bg-white/5 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl rounded-bl-none self-start shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
         >
           <span className="text-[8px] font-black uppercase tracking-widest opacity-40 block mb-1">
@@ -37,8 +36,7 @@ export default function CommunityPreview() {
             type: "spring",
             stiffness: 260,
             damping: 20,
-            delay: 1.8,
-          }}
+            delay: 1.8 }}
           className="bg-[#ceff1c] text-[#111111] p-4 rounded-3xl rounded-br-none self-end shadow-[0_8px_32px_rgba(206,255,28,0.2)] relative z-10"
         >
           <span className="text-[8px] font-black uppercase tracking-widest opacity-40 block mb-1">

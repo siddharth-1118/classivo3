@@ -231,15 +231,13 @@ const HomeDashboard = ({
         className="absolute top-0 left-0 w-full flex justify-center pt-8 z-0 transition-opacity duration-300"
         style={{
           opacity: Math.min(pullY / 60, 1),
-          transform: `translateY(${pullY * 0.3}px)`,
-        }}
+          transform: `translateY(${pullY * 0.3}px)` }}
       >
         <Loader
           className="w-6 h-6 text-black/80"
           style={{
             animation: isRefreshing ? "spin 1s linear infinite" : "none",
-            transform: `rotate(${pullY * 2}deg)`,
-          }}
+            transform: `rotate(${pullY * 2}deg)` }}
         />
       </div>
 
@@ -260,8 +258,7 @@ const HomeDashboard = ({
             initial={{ y: "-100%", borderRadius: 0 }}
             animate={{
               y: 0,
-              borderRadius: "0 0 48px 48px",
-            }}
+              borderRadius: "0 0 48px 48px" }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.02 }}
             className={`bg-[#fdfdfd] flex flex-col relative overflow-hidden shrink-0 z-20 ${
               isAlertExpanded || isMetricExpanded ? "flex-[2]" : "flex-[7]"
@@ -276,9 +273,9 @@ const HomeDashboard = ({
               >
                 <span
                   className="text-xl font-black lowercase tracking-tight"
-                  style={{ fontFamily: "Urbanosta" }}
+                  
                 >
-                  ratio'd
+                  classivo
                 </span>
               </motion.div>
             </div>
@@ -292,7 +289,7 @@ const HomeDashboard = ({
                 >
                   <h1
                     className="text-[24px] md:text-[28px] font-bold lowercase tracking-tight text-black/20 leading-none"
-                    style={{ fontFamily: "Aonic" }}
+                    
                   >
                     hello, <span className="text-black">{studentName}</span>
                   </h1>
@@ -313,7 +310,7 @@ const HomeDashboard = ({
                   >
                     <span
                       className="text-[16px] md:text-[18px] font-bold lowercase tracking-tight text-black/40 leading-none"
-                      style={{ fontFamily: "Aonic" }}
+                      
                     >
                       {timeStatus?.nextClass
                         ? "your next class is"
@@ -322,13 +319,13 @@ const HomeDashboard = ({
                     <div className="flex flex-col mt-2 w-full break-words">
                       <span
                         className="text-[#3233ff] truncate text-[4.5vw] md:text-[3rem] leading-[0.8] font-black tracking-tight"
-                        style={{ fontFamily: "Akira" }}
+                        
                       >
                         {displayNext.top}
                       </span>
                       <span
                         className="text-black truncate text-[8vw] md:text-[6rem] font-black tracking-tighter -mt-1 md:-mt-2"
-                        style={{ fontFamily: "Akira" }}
+                        
                       >
                         {displayNext.bottom}
                       </span>
@@ -345,7 +342,7 @@ const HomeDashboard = ({
                   >
                     <div
                       className="bg-black text-white px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase border border-black/5 flex-shrink-0"
-                      style={{ fontFamily: "Aonic" }}
+                      
                     >
                       {timeStatus?.currentClass
                         ? `⭐ current: ${timeStatus.currentClass.course}${timeStatus.currentClass.type === "lab" ? " (P)" : ""}`
@@ -354,7 +351,7 @@ const HomeDashboard = ({
                     {timeStatus?.currentClass && (
                       <div
                         className="bg-black/5 px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase text-black/60 border border-black/5 flex-shrink-0"
-                        style={{ fontFamily: "Aonic" }}
+                        
                       >
                         📍 {timeStatus.currentClass.room}
                       </div>
@@ -362,7 +359,7 @@ const HomeDashboard = ({
                     {timeStatus?.nextClass && (
                       <div
                         className="bg-black/5 px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase text-black/60 border border-black/5 flex-shrink-0"
-                        style={{ fontFamily: "Aonic" }}
+                        
                       >
                         ⏰ {timeStatus.nextClass.time}{timeStatus.nextClass.type === "lab" ? " (P)" : ""}
                       </div>
@@ -408,7 +405,7 @@ const HomeDashboard = ({
                     <div className="flex flex-col min-w-0 -mt-1">
                       <p
                         className="font-bold text-xl md:text-2xl tracking-normal lowercase shrink-0 leading-tight"
-                        style={{ fontFamily: "Aonic" }}
+                        
                       >
                         academic alerts
                       </p>
@@ -421,7 +418,7 @@ const HomeDashboard = ({
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
                               className="text-[11px] font-bold text-white/40 lowercase truncate"
-                              style={{ fontFamily: "Aonic" }}
+                              
                             >
                               {allAlerts[currentAlertIndex] 
                                 ? `${allAlerts[currentAlertIndex].title.toLowerCase()}: ${allAlerts[currentAlertIndex].desc.toLowerCase().split(" / ")[0]}`
@@ -461,7 +458,7 @@ const HomeDashboard = ({
                             <div className="flex justify-between items-start">
                               <span
                                 className="text-[12px] font-bold leading-tight text-black line-clamp-2"
-                                style={{ fontFamily: "Aonic" }}
+                                
                               >
                                 {alert.description}
                               </span>
@@ -473,7 +470,7 @@ const HomeDashboard = ({
                             </div>
                             <span
                               className="text-[10px] font-bold text-black/40 uppercase tracking-wide"
-                              style={{ fontFamily: "Aonic" }}
+                              
                             >
                               {alert.date} • {alert.day}
                             </span>
@@ -482,7 +479,7 @@ const HomeDashboard = ({
                       ) : (
                         <div
                           className="bg-black/20 p-4 rounded-2xl font-bold text-[11px] lowercase text-white tracking-normal"
-                          style={{ fontFamily: "Aonic" }}
+                          
                         >
                           no upcoming exams
                         </div>
@@ -527,7 +524,7 @@ const HomeDashboard = ({
                   </div>
                   <div
                     className="bg-black/90 backdrop-blur-xl text-white p-1 rounded-full flex items-center text-[9px] md:text-[10px] font-bold uppercase tracking-[0.1em]"
-                    style={{ fontFamily: "Aonic" }}
+                    
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div
@@ -566,7 +563,7 @@ const HomeDashboard = ({
                         <div className="flex items-center justify-between mb-2">
                           <span
                             className="text-[14px] font-bold text-black/40 lowercase"
-                            style={{ fontFamily: "Aonic" }}
+                            
                           >
                             {metricMode === "attendance"
                               ? "needs attention"
@@ -589,7 +586,7 @@ const HomeDashboard = ({
                                   )}
                                   <span
                                     className="font-bold text-[13px] text-black leading-tight truncate"
-                                    style={{ fontFamily: "Aonic" }}
+                                    
                                   >
                                     {subj.displayName}
                                   </span>
@@ -599,7 +596,7 @@ const HomeDashboard = ({
                                     <AlertTriangle size={14} />
                                     <span
                                       className="font-black text-[14px] lowercase"
-                                      style={{ fontFamily: "Aonic" }}
+                                      
                                     >
                                       {subj.required} required
                                     </span>
@@ -611,7 +608,7 @@ const HomeDashboard = ({
                             <div className="bg-black/5 p-4 rounded-2xl text-center w-full">
                               <span
                                 className="font-bold text-[12px] text-black/60"
-                                style={{ fontFamily: "Aonic" }}
+                                
                               >
                                 attendance is safe
                               </span>
@@ -630,7 +627,7 @@ const HomeDashboard = ({
                                   </span>
                                   <span
                                     className="font-bold text-[13px] text-black leading-tight truncate"
-                                    style={{ fontFamily: "Aonic" }}
+                                    
                                   >
                                     {mark.title}
                                   </span>
@@ -639,7 +636,7 @@ const HomeDashboard = ({
                                   <div className="flex items-baseline gap-1">
                                     <span
                                       className="font-black text-[18px] text-black"
-                                      style={{ fontFamily: "Urbanosta" }}
+                                      
                                     >
                                       {mark.score}
                                     </span>
@@ -652,7 +649,7 @@ const HomeDashboard = ({
                             <div className="bg-black/5 p-4 rounded-2xl text-center w-full">
                               <span
                                 className="font-bold text-[12px] text-black/60"
-                                style={{ fontFamily: "Aonic" }}
+                                
                               >
                                 no marks data available
                               </span>
@@ -672,7 +669,7 @@ const HomeDashboard = ({
                         <div>
                           <p
                             className="text-[10px] font-bold uppercase text-black/30 tracking-widest mb-1"
-                            style={{ fontFamily: "Aonic" }}
+                            
                           >
                             {metricMode === "attendance"
                               ? "overall"
@@ -680,7 +677,7 @@ const HomeDashboard = ({
                           </p>
                           <h2
                             className="text-[28px] md:text-[34px] font-bold leading-[0.95] text-black tracking-normal lowercase"
-                            style={{ fontFamily: "Aonic" }}
+                            
                           >
                             {metricMode === "attendance" ? (
                               <>
@@ -695,7 +692,7 @@ const HomeDashboard = ({
                         </div>
                         <div
                           className="text-[80px] md:text-[88px] font-black leading-[0.7] tracking-[-0.04em] text-black"
-                          style={{ fontFamily: "Urbanosta" }}
+                          
                         >
                           <ScoreCounter value={metricMode === "attendance" ? overallAttendance : overallMarks} />
                           <span className="text-[34px] opacity-20 tracking-normal">

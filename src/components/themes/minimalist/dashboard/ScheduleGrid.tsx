@@ -91,19 +91,19 @@ export default function ScheduleGrid({
       >
         <span
           className={`text-[7px] min-[380px]:text-[8.5px] font-bold uppercase tracking-tight leading-none text-center truncate w-full px-1 mb-0.5 ${topText}`}
-          style={{ fontFamily: "var(--font-afacad), sans-serif" }}
+          
         >
           {slot.room}
         </span>
         <span
           className={`text-[12px] min-[380px]:text-[14px] min-[420px]:text-[15px] font-black uppercase tracking-tight leading-none overflow-hidden text-center w-full px-0.5 ${midText}`}
-          style={{ fontFamily: "var(--font-montserrat), sans-serif" }}
+          
         >
           {slot.sub}
         </span>
         <span
           className={`text-[8px] min-[380px]:text-[9.5px] font-bold tracking-tighter leading-none text-center mt-0.5 ${botText}`}
-          style={{ fontFamily: "var(--font-afacad), sans-serif" }}
+          
         >
           {slot.time}
         </span>

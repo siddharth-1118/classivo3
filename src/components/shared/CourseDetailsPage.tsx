@@ -76,7 +76,7 @@ export default function CourseDetailsPage({
                           <div className="bg-theme-text-10 h-6 px-3 rounded-full flex items-center justify-center">
                             <span 
                               className="text-[9px] font-bold uppercase tracking-widest whitespace-nowrap leading-none translate-y-[0.5px] text-theme-muted"
-                              style={{ fontFamily: "var(--font-afacad), sans-serif" }}
+                              
                             >
                               {course.raw_type || course.type}
                             </span>
@@ -85,7 +85,7 @@ export default function CourseDetailsPage({
 
                         <h3 
                           className="text-2xl font-black leading-[1.05] tracking-tighter lowercase line-clamp-2 mb-auto"
-                          style={{ fontFamily: "var(--font-montserrat)" }}
+                          
                         >
                           {course.name.toLowerCase()}
                         </h3>
@@ -127,7 +127,7 @@ export default function CourseDetailsPage({
              <button
               onClick={onClose}
               className="w-full py-5 rounded-[24px] bg-theme-text text-theme-bg font-black uppercase tracking-[0.2em] text-sm active:scale-95 transition-all pointer-events-auto shadow-2xl"
-              style={{ fontFamily: "var(--font-montserrat)" }}
+              
             >
               Back to Settings
             </button>

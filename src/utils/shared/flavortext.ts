@@ -67,11 +67,13 @@ export const flavorText = {
     "the grind doesn't stop, but you can.",
   ],
   loading: [
-    "stealing your data hehe ;)...",
-    "fighting zoho for your attendance...",
-    "waking up the hamsters...",
-    "kicking your other session out...",
-    "decrypting your academic downfall...",
+    "brewing some late night coffee...",
+    "forging your academic comeback...",
+    "calculating how many classes you can bunk...",
+    "sneaking past the academia firewall...",
+    "making the ui look premium...",
+    "syncing your inevitable success...",
+    "waking up the nest...",
   ],
 };
 

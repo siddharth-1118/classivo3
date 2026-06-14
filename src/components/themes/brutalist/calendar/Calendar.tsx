@@ -51,14 +51,14 @@ const CalendarDay = memo(
           {item.dayOrder ? (
             <span
               className={`text-[10px] font-bold ${orderColor}`}
-              style={{ fontFamily: "Aonic" }}
+              
             >
               {item.dayOrder}
             </span>
           ) : item.isDayHoliday ? (
             <span
               className={`text-[10px] font-bold ${orderColor}`}
-              style={{ fontFamily: "Aonic" }}
+              
             ></span>
           ) : null}
         </div>
@@ -66,7 +66,7 @@ const CalendarDay = memo(
         <div className="flex items-center justify-center pt-4">
           <span
             className={`text-xl font-black ${dateColor}`}
-            style={{ fontFamily: "Aonic" }}
+            
           >
             {item.day}
           </span>
@@ -273,7 +273,7 @@ const CalendarPage = ({ calendarData, academia, data }: any) => {
               <Calendar size={12} className={theme.text} />
               <span
                 className={`text-[11px] font-bold lowercase tracking-wide ${theme.text}`}
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 {display.pill}
               </span>
@@ -284,14 +284,14 @@ const CalendarPage = ({ calendarData, academia, data }: any) => {
               <div className="mb-3">
                 <span
                   className={`text-[13px] font-bold lowercase tracking-wide opacity-50 block ml-1 ${theme.text}`}
-                  style={{ fontFamily: "Aonic" }}
+                  
                 >
                   {display.label}
                 </span>
               </div>
               <span
                 className={`text-[7rem] leading-[0.8] font-black tracking-tighter ${theme.text}`}
-                style={{ fontFamily: "Urbanosta" }}
+                
               >
                 {display.bigText}
               </span>
@@ -299,13 +299,13 @@ const CalendarPage = ({ calendarData, academia, data }: any) => {
             <div className="flex flex-col justify-end pb-4 flex-1 min-w-0 pl-3">
               <span
                 className={`text-2xl font-bold lowercase leading-none mb-1 ${theme.text}`}
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 {display.infoMain}
               </span>
               <span
                 className={`text-lg font-bold leading-5 ${theme.text} opacity-90 break-words line-clamp-3`}
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 {display.infoSub}
               </span>
@@ -319,7 +319,7 @@ const CalendarPage = ({ calendarData, academia, data }: any) => {
         <div className="flex justify-between items-center mb-6 px-1 relative">
           <div
             className="absolute left-1/2 -translate-x-1/2 font-black text-xl tracking-tight text-[#050505]"
-            style={{ fontFamily: "Aonic" }}
+            
           >
             {monthTitle}
           </div>
@@ -388,13 +388,13 @@ const CalendarPage = ({ calendarData, academia, data }: any) => {
             >
               <h1
                 className="text-6xl font-black lowercase tracking-tighter text-white mb-2"
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 calendar
               </h1>
               <p
                 className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%]"
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 schedule & orders
               </p>

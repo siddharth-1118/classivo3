@@ -98,21 +98,21 @@ export default function Timetable({ schedule, dayOrder, data }) {
         <div className="flex flex-col text-white">
           <span
             className="text-[#ceff1c] font-black text-sm tracking-[0.2em] uppercase mb-2 ml-1"
-            style={{ fontFamily: "Aonic" }}
+            
           >
             {dateDisplay.day}
           </span>
           <div className="flex items-baseline leading-[0.8]">
             <h1
               className="text-[130px] font-medium tracking-tighter text-white"
-              style={{ fontFamily: "Urbanosta" }}
+              
             >
               {dateDisplay.date}
             </h1>
             <div className="flex flex-col ml-4 mb-3">
               <span
                 className="text-4xl font-black text-white/30 uppercase"
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 {dateDisplay.month}
               </span>
@@ -128,8 +128,7 @@ export default function Timetable({ schedule, dayOrder, data }) {
         layout
         animate={{
           top: isExpanded ? "0%" : "38%",
-          height: isExpanded ? "100%" : "62%",
-        }}
+          height: isExpanded ? "100%" : "62%" }}
         transition={{ type: "spring", stiffness: 200, damping: 30 }}
         className={`absolute w-full bg-[#fdfdfd] flex flex-col shadow-[0_-30px_80px_rgba(0,0,0,0.9)] z-20 overflow-hidden rounded-t-[32px] transition-transform duration-700 ease-in-out ${
           introMode ? "translate-y-[60%]" : "translate-y-0"
@@ -236,7 +235,7 @@ export default function Timetable({ schedule, dayOrder, data }) {
                       <div className="mb-4">
                         <h3
                           className="text-lg font-bold text-black leading-tight lowercase mb-2"
-                          style={{ fontFamily: "Aonic" }}
+                          
                         >
                           {item.name || item.course}
                         </h3>
@@ -301,13 +300,13 @@ export default function Timetable({ schedule, dayOrder, data }) {
             >
               <h1
                 className="text-6xl font-black lowercase tracking-tighter text-[#ceff1c] mb-2"
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 timetable
               </h1>
               <div
                 className="text-xl font-bold lowercase text-white/80 leading-tight max-w-[80%] flex items-center gap-2"
-                style={{ fontFamily: "Aonic" }}
+                
               >
                 <UserAvatar seed={profileSeed} className="w-6 h-6 shrink-0" />
                 {currentRoast}

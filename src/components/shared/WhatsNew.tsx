@@ -66,10 +66,10 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
         >
           <div className="flex justify-between items-center mb-12">
             <span
-              className="text-2xl font-black lowercase tracking-tighter text-theme-text"
-              style={{ fontFamily: "var(--font-urbanosta)" }}
+              className="text-2xl font-black lowercase tracking-tighter text-theme-text font-title-md"
+              
             >
-              ratio'd
+              classivo
             </span>
             <button
               onClick={onClose}
@@ -81,7 +81,7 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
 
           <h2
             className="text-[2.5rem] font-black lowercase tracking-tighter leading-[0.9] mb-8 text-theme-text"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             what's
             <br />
@@ -97,7 +97,7 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
                   </div>
                   <h3
                     className="font-black text-sm uppercase tracking-[0.2em] text-theme-text"
-                    style={{ fontFamily: "var(--font-montserrat)" }}
+                    
                   >
                     {item.title}
                   </h3>
@@ -106,7 +106,7 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
                 {item.isNew && (
                   <span 
                     className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-theme-highlight text-theme-bg"
-                    style={{ fontFamily: "var(--font-montserrat)" }}
+                    
                   >
                     NEW
                   </span>
@@ -114,7 +114,7 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
 
                 <p
                   className="text-xs opacity-70 leading-relaxed font-bold text-theme-text"
-                  style={{ fontFamily: "var(--font-montserrat)" }}
+                  
                 >
                   {item.desc}
                 </p>
@@ -125,7 +125,7 @@ export default function WhatsNew({ isOpen, onClose }: WhatsNewProps) {
           <button
             onClick={onClose}
             className="mt-4 w-full py-5 bg-theme-emphasis text-theme-bg font-black uppercase tracking-[0.2em] rounded-2xl active:scale-[0.98] transition-transform"
-            style={{ fontFamily: "var(--font-montserrat)" }}
+            
           >
             awesome
           </button>

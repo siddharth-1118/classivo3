@@ -1,13 +1,7 @@
 export async function fetchWithLoadBalancer(endpoint: string, options: RequestInit = {}) {
-  const urlsString = process.env.NEXT_PUBLIC_BACKEND_URLS || "";
-  const urls = urlsString
-    .split(",")
-    .map(url => url.trim())
-    .filter(Boolean);
-
-  if (urls.length === 0) {
-    throw new Error("No backend URLs configured.");
-  }
+  // Read from env variable; fall back to the hardcoded domain if not set
+  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URLS || "https://nancey-pandemoniacal-candra.ngrok-free.dev";
+  const urls = envUrl.split(",").map((u) => u.trim()).filter(Boolean);
 
   const shuffledUrls = [...urls].sort(() => Math.random() - 0.5);
 
@@ -16,12 +10,20 @@ export async function fetchWithLoadBalancer(endpoint: string, options: RequestIn
   for (const baseUrl of shuffledUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); 
+      // Increased timeout to 60 seconds to allow ngrok to warm up
+      const timeoutId = setTimeout(() => {
+        console.log(`[Proxy] Request to ${baseUrl} timed out after 60s`);
+        controller.abort();
+      }, 60000);
 
       const res = await fetch(`${baseUrl}${endpoint}`, {
         ...options,
+        mode: 'cors',
         headers: {
           ...options.headers,
+          "ngrok-skip-browser-warning": "true",
+          "bypass-tunnel-reminder": "true",
+          "Content-Type": "application/json"
         },
         signal: controller.signal,
       });

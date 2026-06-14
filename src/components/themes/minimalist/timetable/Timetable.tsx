@@ -1,14 +1,9 @@
 "use client";
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  MapPin,
-  Clock,
-  User,
-  Plus,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
+import { Haptics } from "@/utils/shared/haptics";
 import {
   buildCourseMap,
   processSchedule,
@@ -57,6 +52,7 @@ export default function Timetable({
   setIsSwipeDisabled?: (disabled: boolean) => void;
   startEntrance: boolean;
 }) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const initialSet = useRef(false);
@@ -68,18 +64,8 @@ export default function Timetable({
   const todayStr = useMemo(() => {
     const now = new Date();
     const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
     const d = String(now.getDate()).padStart(2, "0");
     const m = months[now.getMonth()];
@@ -100,14 +86,21 @@ export default function Timetable({
 
   const [activeDay, setActiveDay] = useState<number>(1);
   const [isAddingClass, setIsAddingClass] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [timeTick, setTimeTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (setIsSwipeDisabled) {
       setIsSwipeDisabled(isAddingClass);
     }
   }, [isAddingClass, setIsSwipeDisabled]);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [newSub, setNewSub] = useState("");
   const [newRoom, setNewRoom] = useState("");
@@ -160,8 +153,7 @@ export default function Timetable({
       if (stored) {
         try {
           setCustomClasses(JSON.parse(stored));
-        } catch {
-        }
+        } catch {}
       }
     };
     updateCustomClasses();
@@ -209,422 +201,298 @@ export default function Timetable({
   }, [schedule, customClasses, activeDay, dayOrder, courseMap]);
 
   const isViewingToday = String(activeDay) === String(dayOrder) && !isHoliday;
-  const nextScheduledDay = isHoliday
-    ? nextWorkingDayOrder
-    : dayOrder < 5
-      ? dayOrder + 1
-      : 1;
-  const isViewingNext =
-    String(activeDay) === String(nextScheduledDay) &&
-    (isHoliday || !isViewingToday);
 
-  useEffect(() => {
-    if (mounted && isViewingToday) {
-      const timer = setTimeout(() => {
-        const currentClassElement = document.getElementById(
-          "active-class-indicator",
-        );
-        if (currentClassElement) {
-          currentClassElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [mounted, activeDay, isViewingToday]);
+  const currentDateStr = useMemo(() => {
+    const options: Intl.DateTimeFormatOptions = { weekday: "long", month: "short", day: "numeric" };
+    return new Date().toLocaleDateString("en-US", options);
+  }, []);
+
+  const nowMins = useMemo(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }, [timeTick]);
 
   if (!mounted) return null;
   const overview = getDayOverview(currentSchedule);
 
-  const bgClass = "bg-theme-bg";
-  const textClass = "text-theme-text";
-  const subTextClass = "text-theme-muted";
-
   return (
-    <>
-      <div className={`absolute inset-0 ${bgClass}`}>
-        <motion.div
+    <div className="absolute inset-0 bg-[#0f131f] text-[#dfe1f4] overflow-hidden select-none font-body-lg">
+      
+      {/* TopAppBar */}
+      <header className="fixed top-0 left-0 right-0 w-full z-50 bg-surface/30 backdrop-blur-lg border-b border-outline-variant/10 flex justify-between items-center px-5 h-16">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => { Haptics.light(); router.push("/"); }}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary/10 transition-colors active:scale-95 duration-200 shrink-0"
+          >
+            <span className="material-symbols-outlined text-primary-container">arrow_back</span>
+          </button>
+          <h1 className="font-headline-lg-mobile text-[22px] font-black text-primary-container lowercase tracking-tight">
+            timetable
+          </h1>
+        </div>
+        <button
+          onClick={() => { Haptics.selection(); setIsAddingClass(true); }}
+          className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary-container flex items-center justify-center active:scale-90 transition-all border border-primary-container/10"
+        >
+          <span className="material-symbols-outlined">add</span>
+        </button>
+      </header>
+
+      {/* Fixed Day Selector */}
+      <nav className="fixed top-16 left-0 right-0 z-40 bg-surface-container-low/40 backdrop-blur-xl border-b border-outline-variant/10 py-3 overflow-x-auto no-scrollbar">
+        <div className="flex px-5 gap-3">
+          {[1, 2, 3, 4, 5].map((day) => {
+            const isToday = String(day) === String(dayOrder) && !isHoliday;
+            const isSelected = activeDay === day;
+            return (
+              <button
+                key={day}
+                onClick={() => {
+                  Haptics.selection();
+                  setActiveDay(day);
+                  setExpandedCard(null);
+                }}
+                className={`flex-shrink-0 px-6 py-2 rounded-xl text-xs font-label-caps uppercase transition-all duration-300 border ${
+                  isSelected
+                    ? "bg-primary-container/10 border-primary-container/20 text-primary-container shadow-[0_0_15px_rgba(110,231,247,0.15)] font-bold"
+                    : "text-on-surface-variant hover:text-primary border-transparent"
+                }`}
+              >
+                Day {day} {isToday && "• Today"}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Scroll container */}
+      <div className="absolute inset-0 overflow-y-auto no-scrollbar">
+        <motion.main 
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          ref={scrollContainerRef}
-          className="h-full w-full overflow-y-auto no-scrollbar px-6 pt-10 pb-[280px] flex flex-col relative z-10"
+          className="mt-36 pb-32 px-5 max-w-2xl mx-auto space-y-6"
         >
-          {isHoliday && (
-            <motion.div
-              variants={itemVariants}
-              className="w-full status-bg-safe status-border-safe border-[1.5px] rounded-[16px] p-3 mb-6 flex items-center justify-center gap-2 shrink-0"
-            >
-              <span className="text-xl">🌴</span>
-              <span
-                className="text-[13px] font-bold status-text-safe lowercase tracking-wide"
-                style={{ fontFamily: "'Afacad', sans-serif" }}
-              >
-                holiday today! viewing upcoming track.
-              </span>
-            </motion.div>
+          {/* Current Time Indicator Bar */}
+          <div className="flex items-center gap-4 py-2 opacity-60">
+            <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-outline-variant to-transparent"></div>
+            <span className="font-label-caps text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+              {currentDateStr} • Day Order {activeDay}
+            </span>
+            <div className="h-[1px] flex-grow bg-gradient-to-r from-outline-variant via-outline-variant to-transparent"></div>
+          </div>
+
+          {/* Holiday or overview banner */}
+          {isHoliday && isViewingToday && (
+            <div className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
+              <span className="material-symbols-outlined text-emerald-400">beach_access</span>
+              <div>
+                <h4 className="font-title-md text-[14px] text-emerald-400 font-bold uppercase tracking-wider">Holiday Today</h4>
+                <p className="font-body-sm text-[12px] text-on-surface-variant">Showing upcoming working day orders.</p>
+              </div>
+            </div>
           )}
 
-          <motion.div
-            variants={itemVariants}
-            className="w-full flex flex-col items-center mt-2 mb-8 shrink-0 relative"
-          >
-            <span
-              className={`text-[12px] font-bold lowercase tracking-[0.3em] mb-3 text-center transition-colors ${isViewingToday ? subTextClass : isViewingNext ? "text-theme-highlight" : subTextClass}`}
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
-            >
-              {isViewingToday
-                ? "current day order"
-                : isViewingNext
-                  ? "upcoming day order"
-                  : "selected day order"}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span
-                className={`text-[7.5rem] leading-[0.8] font-black tracking-tighter ${textClass} text-center`}
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                {String(activeDay).padStart(2, "0")}
-              </span>
-            </div>
-          </motion.div>
+          {/* Class Timeline */}
+          <div className="space-y-6 relative">
+            {/* Timeline Vertical Axis Line */}
+            {currentSchedule.length > 0 && (
+              <div className="absolute left-[19px] top-4 bottom-4 w-[1.5px] bg-outline-variant/20 z-0"></div>
+            )}
 
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-col mb-8 w-full shrink-0"
-          >
-            <button
-              onClick={() => setIsAddingClass(true)}
-              className="w-full relative group active:scale-[0.98] transition-all duration-200"
-            >
-              <div className="absolute inset-0 bg-theme-text rounded-[24px] translate-y-1.5 transition-transform group-hover:translate-y-2" />
-              <div className="relative w-full border-[1.5px] border-theme-text bg-theme-bg text-theme-text rounded-[24px] p-4 flex items-center justify-between transition-transform group-hover:-translate-y-0.5 group-active:translate-y-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-theme-text-8 flex items-center justify-center">
-                    <Plus
-                      size={20}
-                      strokeWidth={2.5}
-                      className="text-theme-text"
-                    />
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span
-                      className="text-[14px] font-black uppercase tracking-widest leading-none"
-                      style={{ fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      CUSTOM CLASS
-                    </span>
-                    <span
-                      className="text-[10px] font-bold lowercase tracking-wider text-theme-muted mt-1"
-                      style={{ fontFamily: "'Afacad', sans-serif" }}
-                    >
-                      add to your schedule
-                    </span>
-                  </div>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-theme-card border-theme-border border flex items-center justify-center shadow-[2px_2px_0px_var(--theme-text)]">
-                  <ChevronRight
-                    size={20}
-                    strokeWidth={3}
-                    className="text-theme-text"
-                  />
-                </div>
+            {currentSchedule.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <span className="material-symbols-outlined text-[36px] text-on-surface-variant mb-3">event_busy</span>
+                <h3 className="font-title-md text-[16px] text-on-surface font-black">No Classes Scheduled</h3>
+                <p className="font-body-sm text-[12.5px] text-on-surface-variant mt-1">Day Order {activeDay} has no classes mapped.</p>
               </div>
-            </button>
-          </motion.div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${activeDay}-${refreshKey}`}
-              variants={containerVariants}
-              initial="hidden"
-              animate={startEntrance ? "show" : "hidden"}
-              exit="hidden"
-              className="flex flex-col w-full"
-            >
-              <motion.div
-                variants={itemVariants}
-                className="w-full status-bg-safe status-border-safe border-[1.5px] rounded-[24px] p-5 mb-8 flex items-center justify-between shadow-sm"
-              >
-                <div className="flex flex-col">
-                  <span
-                    className="text-[10px] font-bold lowercase tracking-[0.2em] text-theme-highlight opacity-60 mb-1"
-                    style={{ fontFamily: "'Afacad', sans-serif" }}
-                  >
-                    day overview
-                  </span>
-                  <div className="flex items-baseline gap-2">
-                    <span
-                      className="text-[24px] font-black tracking-tighter text-theme-highlight"
-                      style={{ fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      {overview.start}
-                    </span>
-                    <span
-                      className="text-[14px] font-bold text-theme-highlight opacity-40"
-                      style={{ fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      to
-                    </span>
-                    <span
-                      className="text-[24px] font-black tracking-tighter text-theme-highlight"
-                      style={{ fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      {overview.end}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span
-                    className="text-[32px] leading-[0.8] font-black text-theme-highlight"
-                    style={{ fontFamily: "'Montserrat', sans-serif" }}
-                  >
-                    {overview.count}
-                  </span>
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-widest text-theme-highlight opacity-60 mt-1.5"
-                    style={{ fontFamily: "'Afacad', sans-serif" }}
-                  >
-                    classes
-                  </span>
-                </div>
-              </motion.div>
-
-              <div className="flex flex-col gap-4 w-full relative">
-                <div className="absolute left-[23px] top-6 bottom-6 w-[2px] bg-theme-text-5 rounded-full z-0" />
-
-                {currentSchedule.map((item) => {
-                  if (item.type === "break") {
-                    return (
-                      <motion.div
-                        variants={itemVariants}
-                        key={item.id}
-                        className="flex items-center gap-4 w-full z-10"
-                      >
-                        <div className="w-12 flex justify-center shrink-0">
-                          <div className="w-2.5 h-2.5 rounded-full bg-theme-text-10 ring-4 ring-[var(--theme-bg)]" />
-                        </div>
-                        <div className="flex-1 break-dotted p-4 flex items-center justify-between">
-                          <span
-                            className="text-[14px] font-bold lowercase tracking-widest text-theme-faint"
-                            style={{ fontFamily: "'Afacad', sans-serif" }}
-                          >
-                            {item.title}
-                          </span>
-                          <span
-                            className="text-[11px] font-bold tracking-widest text-theme-faint"
-                            style={{ fontFamily: "'Montserrat', sans-serif" }}
-                          >
-                            {item.time}
-                          </span>
-                        </div>
-                      </motion.div>
-                    );
-                  }
-
-                  const isLab = item.type === "lab";
-                  const isActuallyCurrent = item.isCurrent && isViewingToday;
-
-                  const currentTheme = isActuallyCurrent
-                    ? "status-boxbg-safe status-border-safe shadow-md scale-[1.02] transform-gpu backdrop-blur-sm"
-                    : isLab
-                      ? "border-[#0EA5E9]/20 bg-[#0EA5E9]/05 backdrop-blur-sm"
-                      : "bg-theme-surface border-theme-border";
-
-                  const textTheme = isActuallyCurrent
-                    ? "status-text-safe font-black"
-                    : textClass;
-                  const subTextTheme = isActuallyCurrent
-                    ? "status-text-safe font-bold"
-                    : subTextClass;
-
+            ) : (
+              currentSchedule.map((item) => {
+                if (item.type === "break") {
+                  const isLunch = item.title?.toLowerCase().includes("lunch");
                   return (
-                    <motion.div
-                      variants={itemVariants}
-                      key={item.id}
-                      id={
-                        isActuallyCurrent ? "active-class-indicator" : undefined
-                      }
-                      className="flex items-stretch gap-4 w-full z-10 relative"
-                    >
-                      <div className="w-12 flex justify-center pt-6 shrink-0 relative">
-                        <div
-                          className={`w-3.5 h-3.5 rounded-full ring-4 ring-[var(--theme-bg)] z-10 ${isActuallyCurrent ? "bg-theme-highlight animate-pulse shadow-[0_0_12px_var(--theme-highlight)]" : isLab ? "bg-[#0EA5E9]" : "bg-theme-text-20"}`}
-                        />
-                        {isActuallyCurrent && (
-                          <div className="absolute top-6 w-3.5 h-3.5 rounded-full bg-theme-highlight animate-ping opacity-50" />
-                        )}
-                      </div>
-
-                      <div
-                        className={`flex-1 border-[1.5px] rounded-[24px] p-5 flex flex-col transition-all relative ${currentTheme} ${!isActuallyCurrent && "shadow-sm"}`}
-                      >
-                        {item.isCustom && (
-                          <button
-                            onClick={() =>
-                              handleDeleteCustom(activeDay, item.time)
-                            }
-                            className="absolute top-3 right-3 w-8 h-8 bg-theme-secondary/10 text-theme-secondary rounded-full flex items-center justify-center hover:bg-theme-secondary/20 active:scale-95 transition-all z-20"
-                          >
-                            <X size={16} strokeWidth={2.5} />
-                          </button>
-                        )}
-
-                        <div className="flex justify-between items-start mb-4 pr-10">
-                          <div
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] ${isActuallyCurrent ? "status-bg-safe" : isLab ? "bg-theme-primary/10" : "bg-theme-bg/40"}`}
-                          >
-                            <Clock
-                              size={12}
-                              className={
-                                isActuallyCurrent
-                                  ? "status-text-safe"
-                                  : subTextClass
-                              }
-                            />
-                            <span
-                              className={`text-[12px] font-bold tracking-widest ${isActuallyCurrent ? "status-text-safe" : textTheme}`}
-                              style={{ fontFamily: "'Montserrat', sans-serif" }}
-                            >
-                              {item.time}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 ml-auto">
-                            {isLab && !isActuallyCurrent && (
-                              <span
-                                className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-1 rounded-md shrink-0"
-                                style={{ fontFamily: "'Afacad', sans-serif" }}
-                              >
-                                practical
-                              </span>
-                            )}
-                            {isActuallyCurrent && (
-                              <span
-                                className={`text-[9px] font-bold uppercase tracking-[0.25em] text-theme-highlight status-bg-safe px-2 py-1 rounded-md shrink-0`}
-                                style={{ fontFamily: "'Afacad', sans-serif" }}
-                              >
-                                live
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <span
-                          className={`text-[24px] font-black uppercase tracking-widest leading-none mb-1 ${textTheme}`}
-                          style={{ fontFamily: "'Montserrat', sans-serif" }}
-                        >
-                          {item.code}
+                    <div key={item.id} className="relative z-10 flex gap-4 pl-14 py-2">
+                      <div className="flex items-center gap-3 text-on-surface-variant/40">
+                        <span className="material-symbols-outlined text-[18px]">{isLunch ? 'restaurant' : 'local_cafe'}</span>
+                        <span className="font-label-caps text-[9px] font-bold tracking-widest uppercase">
+                          {item.title} • {item.time}
                         </span>
-                        <span
-                          className={`text-[14px] font-medium lowercase tracking-wide mb-5 ${subTextTheme}`}
-                          style={{ fontFamily: "'Afacad', sans-serif" }}
-                        >
-                          {item.name}
-                        </span>
-
-                        <div
-                          className={`flex items-center justify-between pt-4 mt-auto border-t ${isActuallyCurrent ? "status-border-safe" : isLab ? "border-[#0EA5E9]/20" : "border-theme-border"}`}
-                        >
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-1.5">
-                              <MapPin
-                                size={12}
-                                className={
-                                  isActuallyCurrent
-                                    ? "status-text-safe"
-                                    : subTextClass
-                                }
-                              />
-                              <span
-                                className={`text-[11px] font-bold uppercase tracking-wider ${isActuallyCurrent ? "status-text-safe" : textTheme}`}
-                                style={{
-                                  fontFamily: "'Montserrat', sans-serif",
-                                }}
-                              >
-                                {item.room}
-                              </span>
-                            </div>
-                            <div
-                              className={`w-1 h-1 rounded-full ${isActuallyCurrent ? "status-bg-safe" : isLab ? "bg-[#0EA5E9]/30" : "bg-theme-border"}`}
-                            />
-                            <div className="flex items-center gap-1.5">
-                              <User
-                                size={12}
-                                className={
-                                  isActuallyCurrent
-                                    ? "status-text-safe"
-                                    : subTextClass
-                                }
-                              />
-                              <span
-                                className={`text-[11px] font-bold lowercase tracking-wider ${isActuallyCurrent ? "status-text-safe" : subTextClass}`}
-                                style={{ fontFamily: "'Afacad', sans-serif" }}
-                              >
-                                {item.faculty}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
                       </div>
-                    </motion.div>
+                    </div>
                   );
-                })}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
+                }
 
-        <div className="fixed bottom-[85px] left-1/2 -translate-x-1/2 bg-theme-accent/30 backdrop-blur-xl p-1.5 pr-2 rounded-full flex items-center gap-1 z-40 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-          <span
-            className="text-[11px] font-bold text-theme-accent ml-3 mr-1 tracking-widest"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            DO
-          </span>
-          <div className="w-[1.5px] h-5 bg-theme-accent/40 mx-1 rounded-full" />
-          {[1, 2, 3, 4, 5].map((day) => (
-            <button
-              key={day}
-              onClick={() => setActiveDay(day)}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 ${
-                activeDay === day
-                  ? "bg-theme-emphasis text-theme-bg scale-105 shadow-[0_0_15px_var(--theme-text)]"
-                  : "bg-transparent text-theme-text/40 hover:text-theme-text hover:bg-theme-text/10"
-              }`}
-            >
-              <span
-                className="text-[16px] font-black"
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                {day}
-              </span>
-            </button>
-          ))}
-        </div>
+                // Determine slot state: Completed, Active, or Upcoming
+                let status: "completed" | "active" | "upcoming" = "upcoming";
+                if (isViewingToday) {
+                  if (item.minutesEnd && nowMins >= item.minutesEnd) {
+                    status = "completed";
+                  } else if (item.minutesStart && item.minutesEnd && nowMins >= item.minutesStart && nowMins < item.minutesEnd) {
+                    status = "active";
+                  }
+                }
 
-        <motion.div
-          variants={itemVariants}
-          initial="hidden"
-          animate="show"
-          className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[var(--theme-bg)] via-[var(--theme-bg)]/80 to-transparent px-6 pb-[30px] z-20 flex justify-between items-end pointer-events-none"
-        >
-          {"timetable".split("").map((char, i) => (
-            <span
-              key={i}
-              className={`text-[3.2rem] leading-[0.75] lowercase ${textClass}`}
-              style={{ fontFamily: "'Afacad', sans-serif", fontWeight: 400 }}
-            >
-              {char}
-            </span>
-          ))}
-        </motion.div>
+                const isLab = item.type === "lab" || item.type === "practical";
+                const isExpanded = expandedCard === item.id;
+
+                // Configure timeline circle styling based on status
+                let circleClass = "bg-surface-container-low border-outline-variant/20 text-on-surface-variant";
+                let iconName = isLab ? "biotech" : "schedule";
+                
+                if (status === "completed") {
+                  circleClass = "bg-surface-container-high border-outline-variant/20 text-on-surface-variant/60";
+                  iconName = "check_circle";
+                } else if (status === "active") {
+                  circleClass = "bg-primary-container border-primary-container text-on-primary shadow-[0_0_10px_#6ee7f7]";
+                  iconName = "bolt";
+                }
+
+                // Class active progress calculation
+                let progressPercent = 0;
+                if (status === "active" && item.minutesStart && item.minutesEnd) {
+                  const total = item.minutesEnd - item.minutesStart;
+                  if (total > 0) {
+                    progressPercent = Math.min(100, Math.max(0, ((nowMins - item.minutesStart) / total) * 100));
+                  }
+                }
+
+                const attRecord = data?.attendance?.find((a: any) => a.code === item.courseCode || a.code === item.code);
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`relative z-10 flex gap-4 transition-opacity duration-300 ${
+                      status === "completed" ? "opacity-50" : "opacity-100"
+                    }`}
+                  >
+                    {/* Circle timeline dot */}
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center ${circleClass} ${status === 'active' ? 'animate-pulse' : ''}`}>
+                      <span 
+                        className="material-symbols-outlined text-sm"
+                        style={{
+                          fontVariationSettings: status === 'completed' || status === 'active' ? "'FILL' 1" : "'FILL' 0"
+                        }}
+                      >
+                        {iconName}
+                      </span>
+                    </div>
+
+                    <div 
+                      onClick={() => { Haptics.selection(); setExpandedCard(isExpanded ? null : item.id); }}
+                      className={`flex-grow glass-panel rounded-2xl p-5 space-y-3 border cursor-pointer hover:border-primary-container/20 transition-all duration-300 ${
+                        status === 'active' ? 'border-primary-container/40 active-glow shadow-[0_0_15px_rgba(110,231,247,0.1)]' : 'border-outline-variant/10'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-label-caps text-[10px] font-bold uppercase ${status === 'active' ? 'text-primary-container' : 'text-on-surface-variant'}`}>
+                              Slot {item.slot} • {item.time}
+                            </span>
+                            {status === "active" && (
+                              <span className="px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container text-[9px] font-extrabold tracking-widest uppercase">Now</span>
+                            )}
+                            {isLab && (
+                              <span className="px-2 py-0.5 rounded bg-indigo-950/40 text-indigo-400 border border-indigo-900/30 text-[8px] font-black tracking-wider uppercase">LAB</span>
+                            )}
+                          </div>
+                          <h3 className="font-title-md text-[16px] text-on-surface font-black tracking-tight leading-snug truncate pr-2" style={{ maxWidth: "200px" }}>
+                            {item.name || item.course}
+                          </h3>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shrink-0 border ${
+                          status === 'active' 
+                            ? 'bg-primary-container/20 text-primary-container border-primary-container/10'
+                            : 'bg-secondary-container/10 text-on-secondary-container border-transparent'
+                        }`}>
+                          {item.room || "UB"}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-2">
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px]">person</span>
+                          <span className="font-body-sm text-[12px] truncate capitalize" style={{ maxWidth: "160px" }}>
+                            {item.faculty?.toLowerCase()}
+                          </span>
+                        </div>
+
+                        {status === "active" && (
+                          <div className="w-1/3 h-1 bg-surface-container-high rounded-full overflow-hidden shrink-0">
+                            <div className="h-full bg-primary-container shadow-[0_0_8px_#6ee7f7]" style={{ width: `${progressPercent}%` }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expandable details */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden mt-4 pt-4 border-t border-outline-variant/10 space-y-4 text-xs font-semibold"
+                          >
+                            <div className="grid grid-cols-2 gap-3 bg-black/20 p-3 rounded-xl border border-white/5 text-[11px]">
+                              <div>
+                                <span className="text-[8px] text-on-surface-variant block uppercase tracking-wider font-bold mb-0.5">Location</span>
+                                <span className="text-on-surface">{item.room || "Lab Class"}</span>
+                              </div>
+                              <div>
+                                <span className="text-[8px] text-on-surface-variant block uppercase tracking-wider font-bold mb-0.5">Mentors</span>
+                                <span className="text-on-surface capitalize truncate block">{item.faculty?.toLowerCase()}</span>
+                              </div>
+                              <div>
+                                <span className="text-[8px] text-on-surface-variant block uppercase tracking-wider font-bold mb-0.5">Slot Code</span>
+                                <span className="text-on-surface">{item.slot || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-[8px] text-on-surface-variant block uppercase tracking-wider font-bold mb-0.5">Course Code</span>
+                                <span className="text-on-surface uppercase">{item.code || item.courseCode || "—"}</span>
+                              </div>
+                            </div>
+
+                            {attRecord && (
+                              <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div>
+                                  <span className="text-[8px] text-on-surface-variant block uppercase tracking-wider font-bold">Attendance Status</span>
+                                  <span className="text-on-surface mt-0.5 block">{attRecord.present} present / {attRecord.conducted} classes</span>
+                                </div>
+                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${attRecord.percent >= 75 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                  {attRecord.percent}%
+                                </span>
+                              </div>
+                            )}
+
+                            {item.isCustom && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  Haptics.warning();
+                                  handleDeleteCustom(activeDay, item.time);
+                                }}
+                                className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-all font-bold uppercase tracking-wider active:scale-95 flex items-center justify-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span> Delete class
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+        </motion.main>
       </div>
 
       <CustomClass
-
         isOpen={isAddingClass}
         onClose={() => setIsAddingClass(false)}
         newSub={newSub}
@@ -639,6 +507,6 @@ export default function Timetable({
         setNewType={setNewType}
         handleAddClass={handleAddClass}
       />
-    </>
+    </div>
   );
 }

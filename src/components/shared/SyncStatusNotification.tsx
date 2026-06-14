@@ -49,7 +49,7 @@ export default function SyncStatusNotification() {
           
           <div className="flex-1 overflow-y-auto no-scrollbar px-8 pt-10 pb-32">
             <div className="flex flex-col mb-12">
-              <h1 className="text-[5.5rem] font-black tracking-tighter text-theme-text leading-[0.8] lowercase" style={{ fontFamily: "var(--font-montserrat)" }}>
+              <h1 className="text-[5.5rem] font-black tracking-tighter text-theme-text leading-[0.8] lowercase" >
                 updates
               </h1>
             </div>
@@ -84,7 +84,7 @@ export default function SyncStatusNotification() {
                           style={{ borderColor: 'var(--theme-text)' }}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[22px] font-black tracking-tight text-theme-text lowercase" style={{ fontFamily: "var(--font-montserrat)" }}>
+                            <span className="text-[22px] font-black tracking-tight text-theme-text lowercase" >
                               {change.course}
                             </span>
                             <div 
@@ -99,7 +99,7 @@ export default function SyncStatusNotification() {
                           
                           <div className="flex items-center justify-center gap-10">
                             <div className="flex flex-col items-center">
-                              <span className="text-4xl font-black text-theme-text opacity-60 tracking-tighter" style={{ fontFamily: "var(--font-montserrat)" }}>
+                              <span className="text-4xl font-black text-theme-text opacity-60 tracking-tighter" >
                                 {change.oldMargin}
                               </span>
                               <span className="text-[9px] font-bold uppercase tracking-widest text-theme-text opacity-60 mt-1">{oldLabel}</span>
@@ -108,7 +108,7 @@ export default function SyncStatusNotification() {
                             <ArrowRight size={24} className="text-theme-highlight" />
 
                             <div className="flex flex-col items-center">
-                              <span className={`text-6xl font-black tracking-tighter leading-none ${isDegraded ? 'text-theme-secondary' : 'text-theme-highlight'}`} style={{ fontFamily: "var(--font-montserrat)" }}>
+                              <span className={`text-6xl font-black tracking-tighter leading-none ${isDegraded ? 'text-theme-secondary' : 'text-theme-highlight'}`} >
                                 {change.newMargin}
                               </span>
                               <span className={`text-[10px] font-bold uppercase tracking-widest ${isDegraded ? 'text-theme-secondary/60' : 'text-theme-highlight/60'} mt-1`}>{newLabel}</span>
@@ -141,7 +141,7 @@ export default function SyncStatusNotification() {
                         style={{ borderColor: 'var(--theme-text)' }}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[22px] font-black tracking-tight text-theme-text lowercase" style={{ fontFamily: "var(--font-montserrat)" }}>
+                          <span className="text-[22px] font-black tracking-tight text-theme-text lowercase" >
                             {mark.course}
                           </span>
                           <div 
@@ -156,7 +156,7 @@ export default function SyncStatusNotification() {
                         
                         <div className="flex items-end justify-between">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-6xl font-black tracking-tighter text-theme-text leading-none" style={{ fontFamily: "var(--font-montserrat)" }}>
+                            <span className="text-6xl font-black tracking-tighter text-theme-text leading-none" >
                               {mark.score}
                             </span>
                             <span className="text-2xl font-bold text-theme-text opacity-60 tracking-tighter">/{mark.max}</span>
@@ -179,7 +179,7 @@ export default function SyncStatusNotification() {
             <button
               onClick={handleManualClose}
               className="w-full bg-theme-emphasis text-theme-bg py-6 rounded-[28px] text-[14px] font-black uppercase tracking-[0.4em] active:scale-[0.98] transition-all shadow-xl pointer-events-auto"
-              style={{ fontFamily: "var(--font-montserrat)" }}
+              
             >
               dismiss
             </button>

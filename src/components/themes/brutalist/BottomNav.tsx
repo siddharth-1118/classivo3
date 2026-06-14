@@ -8,6 +8,7 @@ import {
   Home,
   Calendar,
   GraduationCap,
+  Store,
 } from "lucide-react";
 
 export const BottomNav = memo(() => {
@@ -26,7 +27,7 @@ export const BottomNav = memo(() => {
     { id: "attendance", icon: CheckCircle, path: "/attendance" },
     { id: "home", icon: Home, path: "/" },
     { id: "timetable", icon: LayoutGrid, path: "/timetable" },
-    { id: "calendar", icon: Calendar, path: "/calendar" },
+    { id: "nest", icon: Store, path: "/nest" },
   ];
 
   return (
@@ -51,8 +52,7 @@ export const BottomNav = memo(() => {
                     type: "spring",
                     stiffness: 500,
                     damping: 35,
-                    mass: 1,
-                  }}
+                    mass: 1 }}
                 />
               )}
 

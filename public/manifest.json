@@ -1,6 +1,6 @@
 {
-  "name": "Ratio'd",
-  "short_name": "Ratio'd",
+  "name": "Classivo",
+  "short_name": "Classivo",
   "description": "cool looking and simple academia dashboard",
   "id": "/",
   "start_url": "/",
@@ -41,26 +41,19 @@
       "sizes": "769x1600",
       "type": "image/jpeg",
       "form_factor": "narrow",
-      "label": "Ratio'd Dashboard"
-    },
-    {
-      "src": "/screenshots/attendance.jpeg",
-      "sizes": "769x1600",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Ratio'd Attendance"
+      "label": "Classivo Dashboard"
     }
   ],
   "categories": ["education", "productivity"],
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Attendance",
+      "name": "Radar",
       "url": "/attendance",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Marks",
+      "name": "Scoreboard",
       "url": "/marks",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
