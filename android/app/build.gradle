@@ -3,10 +3,10 @@ apply plugin: 'com.android.application'
 def computedVersionCode = new Date().format('yyMMddHH').toInteger()
 
 android {
-    namespace = "com.ratiod.app"
+    namespace = "com.classivo.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.ratiod.app"
+        applicationId "com.classivo.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode computedVersionCode

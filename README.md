@@ -1,4 +1,4 @@
-<img width="1867" height="369" alt="Classivo" src="https://github.com/user-attachments/assets/cf152291-6290-431a-bf97-448f42a21586" />
+<img width="1867" height="369" alt="Classivo" src="public/classivo-banner.png" />
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />

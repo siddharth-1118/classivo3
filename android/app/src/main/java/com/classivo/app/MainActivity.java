@@ -1,4 +1,4 @@
-package com.ratiod.app;
+package com.classivo.app;
 
 import com.getcapacitor.BridgeActivity;
 

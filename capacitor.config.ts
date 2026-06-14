@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.ratiod.app',
+  appId: 'com.classivo.app',
   appName: 'Classivo',
   webDir: 'out',
   server: {
