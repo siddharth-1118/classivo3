@@ -18,7 +18,7 @@ export default function Alerts({ isOpen, onClose, exams, upcomingBreaks }: Alert
   const [activeTab, setActiveTab] = useState<"storms" | "skies" | "clouds">("storms");
 
   useEffect(() => {
-    const savedPrivate = localStorage.getItem("ratio_private_notes");
+    const savedPrivate = localStorage.getItem("classivo_private_notes");
     if (savedPrivate) {
       try {
         setPersonalNotes(JSON.parse(savedPrivate));
@@ -31,7 +31,7 @@ export default function Alerts({ isOpen, onClose, exams, upcomingBreaks }: Alert
     const newNoteObj = { id: Date.now(), text: newNote, date: "just now" };
     const updatedNotes = [newNoteObj, ...personalNotes];
     setPersonalNotes(updatedNotes);
-    localStorage.setItem("ratio_private_notes", JSON.stringify(updatedNotes));
+    localStorage.setItem("classivo_private_notes", JSON.stringify(updatedNotes));
     setNewNote("");
     window.dispatchEvent(new Event("private_notes_updated"));
   };
@@ -39,7 +39,7 @@ export default function Alerts({ isOpen, onClose, exams, upcomingBreaks }: Alert
   const handleDeleteNote = (id: number) => {
     const updated = personalNotes.filter((n) => n.id !== id);
     setPersonalNotes(updated);
-    localStorage.setItem("ratio_private_notes", JSON.stringify(updated));
+    localStorage.setItem("classivo_private_notes", JSON.stringify(updated));
     window.dispatchEvent(new Event("private_notes_updated"));
   };
 

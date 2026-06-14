@@ -62,7 +62,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
     // -----------------------
 
-    const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
+    const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
 
     try {
       EncryptionUtils.cleanOldKeys();

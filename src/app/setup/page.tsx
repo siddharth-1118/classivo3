@@ -7,8 +7,8 @@ export default function SetupPage() {
   const router = useRouter();
 
   const handleFinish = () => {
-    localStorage.setItem("ratiod_setup_bypassed", "true");
-    const hasData = localStorage.getItem("ratio_data");
+    localStorage.setItem("classivo_setup_bypassed", "true");
+    const hasData = localStorage.getItem("classivo_data");
     router.replace(hasData ? "/" : "/login");
   };
 

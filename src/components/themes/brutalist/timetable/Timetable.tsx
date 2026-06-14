@@ -24,7 +24,7 @@ export default function Timetable({ schedule, dayOrder, data }) {
       setActiveDayOrder(parseInt(dayOrder));
     }
     const fetchCustoms = () => {
-      const stored = localStorage.getItem("ratio_custom_classes");
+      const stored = localStorage.getItem("classivo_custom_classes");
       if (stored) {
         try {
           setCustomClasses(JSON.parse(stored));

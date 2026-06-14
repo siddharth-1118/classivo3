@@ -516,7 +516,7 @@ export default function Marks({
                 onClick={() => {
                   Haptics.heavy();
                   // Save custom project values to localStorage
-                  localStorage.setItem("ratio_simulated_expected_marks", JSON.stringify(expectedMarksMap));
+                  localStorage.setItem("classivo_simulated_expected_marks", JSON.stringify(expectedMarksMap));
                   alert("Simulation values saved locally!");
                 }}
                 className="bg-primary-container text-on-primary-container px-5 py-3 rounded-xl font-label-caps text-[12px] font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(110,231,247,0.25)] border border-primary-container/20"

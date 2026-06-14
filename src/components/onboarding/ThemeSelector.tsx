@@ -13,7 +13,7 @@ export default function ThemeSelector({ onComplete }: ThemeSelectorProps) {
   const { theme: currentTheme, setTheme } = useTheme();
 
   useEffect(() => {
-    const saved = localStorage.getItem("ratiod_theme");
+    const saved = localStorage.getItem("classivo_theme");
     if (!saved || saved.includes("default")) {
       const defaultDark = buildTheme("minimalist", "minimalist-dark" as any);
       setTheme(defaultDark);

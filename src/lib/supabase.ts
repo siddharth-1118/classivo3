@@ -10,6 +10,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: false,
   },
   global: {
-    headers: { 'x-application-name': 'ratio-d' }
+    headers: { 'x-application-name': 'classivo' }
   }
 });

@@ -41,7 +41,7 @@ export const handleAddClassLogic = (
 ) => {
   if (!newSub.trim() || !newRoom.trim() || !startTime || !endTime) return null;
 
-  const stored = localStorage.getItem("ratio_custom_classes");
+  const stored = localStorage.getItem("classivo_custom_classes");
   const currentCustoms: Record<number, any[]> = stored
     ? JSON.parse(stored)
     : {};
@@ -64,13 +64,13 @@ export const handleAddClassLogic = (
     [activeDay]: [...(currentCustoms[activeDay] || []), newClassItem],
   };
 
-  localStorage.setItem("ratio_custom_classes", JSON.stringify(updated));
+  localStorage.setItem("classivo_custom_classes", JSON.stringify(updated));
   window.dispatchEvent(new Event("custom_classes_updated"));
   return true;
 };
 
 export const handleDeleteCustomLogic = (day: number, timeStr: string) => {
-  const stored = localStorage.getItem("ratio_custom_classes");
+  const stored = localStorage.getItem("classivo_custom_classes");
   if (!stored) return;
   const currentCustoms = JSON.parse(stored);
 
@@ -79,7 +79,7 @@ export const handleDeleteCustomLogic = (day: number, timeStr: string) => {
       (c: any) => c.time !== timeStr,
     );
     localStorage.setItem(
-      "ratio_custom_classes",
+      "classivo_custom_classes",
       JSON.stringify(currentCustoms),
     );
     window.dispatchEvent(new Event("custom_classes_updated"));

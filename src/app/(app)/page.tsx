@@ -27,7 +27,7 @@ function DashboardContent() {
   const academia = useAcademiaData(userData as any);
 
   const handleRefresh = useCallback(async () => {
-    const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
+    const creds = EncryptionUtils.loadDecrypted("classivo_credentials");
     if (creds && userData) {
       await refreshData(creds, userData);
     }

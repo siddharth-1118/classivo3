@@ -11,9 +11,9 @@ export default function OnboardingRoute() {
 
   useEffect(() => {
     const checkStatus = () => {
-      const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
-      const hasData = localStorage.getItem("ratio_data") || userData;
-      const hasSession = document.cookie.includes("ratio_session=");
+      const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
+      const hasData = localStorage.getItem("classivo_data") || userData;
+      const hasSession = document.cookie.includes("classivo_session=");
 
       if (isOnboarded && hasData && (hasSession || userData)) {
         router.replace("/");
@@ -28,8 +28,8 @@ export default function OnboardingRoute() {
   }, [router, userData, loginPromise]);
 
   const handleComplete = () => {
-    localStorage.setItem("ratiod_onboarded", "true");
-    document.cookie = "ratio_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
+    localStorage.setItem("classivo_onboarded", "true");
+    document.cookie = "classivo_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
     router.push("/login");
   };
 

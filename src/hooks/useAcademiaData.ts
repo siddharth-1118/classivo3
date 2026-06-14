@@ -63,7 +63,7 @@ export const useAcademiaData = (data: AcademiaData | null) => {
 
   const mergeSchedule = useCallback(() => {
     try {
-      const stored = localStorage.getItem("ratio_custom_classes");
+      const stored = localStorage.getItem("classivo_custom_classes");
       const mergedSchedule: ScheduleData = JSON.parse(
         JSON.stringify(initialSchedule),
       );

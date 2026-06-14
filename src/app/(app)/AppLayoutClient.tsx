@@ -27,20 +27,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isInitialized || isAdminRoute) return;
 
     const checkRedirect = () => {
-      const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
+      const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
       if (!isOnboarded) {
         setIsRedirecting(true);
         router.replace("/onboarding");
         return true;
       }
 
-      const hasData = localStorage.getItem("ratio_data");
-      const hasCreds = localStorage.getItem("ratio_credentials");
+      const hasData = localStorage.getItem("classivo_data");
+      const hasCreds = localStorage.getItem("classivo_credentials");
 
       if (hasData && userData && !userData.profile) {
         console.warn("Corrupted user data detected. Redirecting to login...");
-        localStorage.removeItem("ratio_data");
-        localStorage.removeItem("ratio_credentials");
+        localStorage.removeItem("classivo_data");
+        localStorage.removeItem("classivo_credentials");
         setIsRedirecting(true);
         router.replace("/login");
         return true;
@@ -62,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleUpdateName = (name: string) => {
     setCustomDisplayName(name);
-    localStorage.setItem("ratiod_custom_name", name);
+    localStorage.setItem("classivo_custom_name", name);
   };
 
   if (isAdminRoute) {

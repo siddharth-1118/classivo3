@@ -56,7 +56,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<any>(() => {
     if (typeof window !== "undefined") {
-      const cached = localStorage.getItem("ratio_data");
+      const cached = localStorage.getItem("classivo_data");
       if (cached) {
         try {
           return JSON.parse(cached);
@@ -70,7 +70,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
   const [customDisplayName, setCustomDisplayName] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("ratiod_custom_name") || "";
+      return localStorage.getItem("classivo_custom_name") || "";
     }
     return "";
   });
@@ -88,7 +88,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [showWelcome, setShowWelcome] = useState(false);
   const [profileSeed, setProfileSeed] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("ratio_profile_seed") || "";
+      return localStorage.getItem("classivo_profile_seed") || "";
     }
     return "";
   });
@@ -175,13 +175,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const savedHistory = localStorage.getItem("ratio_update_history");
+    const savedHistory = localStorage.getItem("classivo_update_history");
     if (savedHistory) {
       try {
         const parsed = JSON.parse(savedHistory);
         const cleaned = cleanupHistory(parsed);
         setUpdateHistory(cleaned);
-        localStorage.setItem("ratio_update_history", JSON.stringify(cleaned));
+        localStorage.setItem("classivo_update_history", JSON.stringify(cleaned));
       } catch (e) {
         setUpdateHistory([]);
       }
@@ -337,14 +337,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           delete data.cookies;
         }
 
-        EncryptionUtils.saveEncrypted("ratio_credentials", {
+        EncryptionUtils.saveEncrypted("classivo_credentials", {
           username: creds.username,
           password: creds.password,
         });
 
         EncryptionUtils.setSessionCookie();
         setUserData(data);
-        localStorage.setItem("ratio_data", JSON.stringify(data));
+        localStorage.setItem("classivo_data", JSON.stringify(data));
 
         return data;
       } catch (err: any) {
@@ -442,7 +442,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         
         setUpdateHistory(prev => {
           const updated = cleanupHistory([newHistoryItem, ...prev]);
-          localStorage.setItem("ratio_update_history", JSON.stringify(updated));
+          localStorage.setItem("classivo_update_history", JSON.stringify(updated));
           return updated;
         });
 
@@ -486,7 +486,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUserData(mergedData);
-      localStorage.setItem("ratio_data", JSON.stringify(mergedData));
+      localStorage.setItem("classivo_data", JSON.stringify(mergedData));
       return mergedData;
     } catch (err) {
       if (navigator.onLine) {
@@ -500,13 +500,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
-    const onboarded = localStorage.getItem("ratiod_onboarded") === "true";
+    const onboarded = localStorage.getItem("classivo_onboarded") === "true";
     if (onboarded) {
-      document.cookie = "ratio_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = "classivo_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
     }
 
     if (userData) {
-      const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
+      const creds = EncryptionUtils.loadDecrypted("classivo_credentials");
       if (creds && !hasRefreshed.current) {
         hasRefreshed.current = true;
         setTimeout(() => {
@@ -539,10 +539,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (userData?.profile?.name && !localStorage.getItem("ratio_profile_seed")) {
+    if (userData?.profile?.name && !localStorage.getItem("classivo_profile_seed")) {
       const initialSeed = userData.profile.name;
       setProfileSeed(initialSeed);
-      localStorage.setItem("ratio_profile_seed", initialSeed);
+      localStorage.setItem("classivo_profile_seed", initialSeed);
     }
   }, [userData]);
 

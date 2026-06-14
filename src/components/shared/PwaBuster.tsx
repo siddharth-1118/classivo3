@@ -25,7 +25,7 @@ export default function PwaBuster() {
             }
           }
           
-          // CRITICAL: Cleanly clear all cookies (ratio_session), sessionStorage, localStorage, and webview caches.
+          // CRITICAL: Cleanly clear all cookies (classivo_session), sessionStorage, localStorage, and webview caches.
           // This avoids the infinite redirect loop between '/' and '/login'.
           await EncryptionUtils.flushAllStorage();
           

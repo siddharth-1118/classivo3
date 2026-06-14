@@ -10,7 +10,7 @@ export default function LoginRoute() {
   const router = useRouter();
 
   useEffect(() => {
-    const hasSession = document.cookie.includes("ratio_session=");
+    const hasSession = document.cookie.includes("classivo_session=");
     if (hasSession) {
       router.replace("/");
     }
@@ -18,7 +18,7 @@ export default function LoginRoute() {
 
   const handleLoginSuccess = (data: any) => {
     setUserData(data);
-    localStorage.setItem("ratio_data", JSON.stringify(data));
+    localStorage.setItem("classivo_data", JSON.stringify(data));
     EncryptionUtils.setSessionCookie();
     router.replace("/");
   };

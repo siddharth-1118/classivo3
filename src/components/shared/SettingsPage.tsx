@@ -68,7 +68,7 @@ export default function SettingsPage({
 
   const handleSync = async () => {
     Haptics.selection();
-    const creds = EncryptionUtils.loadDecrypted("ratio_credentials");
+    const creds = EncryptionUtils.loadDecrypted("classivo_credentials");
     if (creds && userData) {
       try {
         await refreshData(creds, userData);

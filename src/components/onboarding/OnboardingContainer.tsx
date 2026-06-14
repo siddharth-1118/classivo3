@@ -86,7 +86,7 @@ function PwaSlideshow({ onComplete }: { onComplete?: () => void }) {
         }
       }
 
-      localStorage.setItem("ratiod_onboarded", "true");
+      localStorage.setItem("classivo_onboarded", "true");
       setShowWelcome(true);
       setIsExiting(true);
       if (onComplete) onComplete();
@@ -688,7 +688,7 @@ export default function OnboardingContainer({
             <button
               onClick={() => {
                 setForceOnboarding(true);
-                localStorage.setItem("ratiod_bypass_pwa", "true");
+                localStorage.setItem("classivo_bypass_pwa", "true");
               }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-default"
               aria-hidden="true"

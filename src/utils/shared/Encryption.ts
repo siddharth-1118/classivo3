@@ -2,12 +2,12 @@ import CryptoJS from "crypto-js";
 
 const getDeviceKey = () => {
   if (typeof window === "undefined") return "fallback";
-  let key = localStorage.getItem("ratio_internal_dk");
+  let key = localStorage.getItem("classivo_internal_dk");
   if (!key) {
     key = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
-    localStorage.setItem("ratio_internal_dk", key);
+    localStorage.setItem("classivo_internal_dk", key);
   }
   return key;
 };
@@ -42,21 +42,21 @@ export const EncryptionUtils = {
 
   cleanOldKeys: () => {
     const validKeys = [
-      "ratio_internal_dk",
-      "ratio_app_version",
+      "classivo_internal_dk",
+      "classivo_app_version",
       "academia_cookies",
-      "ratio_credentials",
-      "ratio_data",
-      "ratiod_custom_name",
-      "ratiod_theme",
-      "ratio_private_notes",
-      "ratio_custom_classes",
-      "ratiod_onboarded",
-      "ratio_update_history",
-      "ratio_seen_version",
-      "ratio_profile_seed",
-      "ratiod_bypass_pwa",
-      "ratiod_setup_bypassed",
+      "classivo_credentials",
+      "classivo_data",
+      "classivo_custom_name",
+      "classivo_theme",
+      "classivo_private_notes",
+      "classivo_custom_classes",
+      "classivo_onboarded",
+      "classivo_update_history",
+      "classivo_seen_version",
+      "classivo_profile_seed",
+      "classivo_bypass_pwa",
+      "classivo_setup_bypassed",
     ];
 
     Object.keys(localStorage).forEach((key) => {
@@ -67,16 +67,16 @@ export const EncryptionUtils = {
   },
 
   flushAllStorage: async () => {
-    const onboarded = localStorage.getItem("ratiod_onboarded");
+    const onboarded = localStorage.getItem("classivo_onboarded");
     
     localStorage.clear();
     sessionStorage.clear();
     
     if (onboarded) {
-      localStorage.setItem("ratiod_onboarded", onboarded);
+      localStorage.setItem("classivo_onboarded", onboarded);
     }
     
-    document.cookie = "ratio_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    document.cookie = "classivo_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     
     if (typeof window !== "undefined" && "caches" in window) {
       try {
@@ -89,6 +89,6 @@ export const EncryptionUtils = {
   },
 
   setSessionCookie: () => {
-    document.cookie = "ratio_session=active; path=/; max-age=2592000; SameSite=Lax";
+    document.cookie = "classivo_session=active; path=/; max-age=2592000; SameSite=Lax";
   },
 };

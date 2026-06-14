@@ -88,7 +88,7 @@ const handleUpdate = () => {
 };
 
 useEffect(() => {
-  const splashPlayed = sessionStorage.getItem("ratio_splash_played") === "true";
+  const splashPlayed = sessionStorage.getItem("classivo_splash_played") === "true";
   if (splashPlayed) return;
   
   const isStandalone =
@@ -96,8 +96,8 @@ useEffect(() => {
     (window.navigator as any).standalone;
 
   if (isStandalone) {
-    sessionStorage.setItem("ratio_splash_played", "true");
-    const isOnboarded = localStorage.getItem("ratiod_onboarded") === "true";
+    sessionStorage.setItem("classivo_splash_played", "true");
+    const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
     
     if (!isOnboarded) {
       setIsFirstSplash(true);

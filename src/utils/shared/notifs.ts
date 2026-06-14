@@ -123,7 +123,7 @@ export const subscribeToPushNotifications = async (): Promise<boolean> => {
       });
     }
 
-    const userDataStr = localStorage.getItem('ratio_data');
+    const userDataStr = localStorage.getItem('classivo_data');
     const userData = userDataStr ? JSON.parse(userDataStr) : null;
     const userEmail = userData?.profile?.regNo || 'unknown';
 
@@ -183,7 +183,7 @@ async function registerNativePushInBackground() {
       await PushNotifications.register();
       
       PushNotifications.addListener('registration', async (token) => {
-        const userDataStr = localStorage.getItem('ratio_data');
+        const userDataStr = localStorage.getItem('classivo_data');
         const userData = userDataStr ? JSON.parse(userDataStr) : null;
         const userRegNo = userData?.profile?.regNo || 'unknown';
 
