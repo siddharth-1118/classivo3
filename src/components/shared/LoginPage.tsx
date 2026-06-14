@@ -62,8 +62,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
     // -----------------------
 
-    const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
-
     try {
       EncryptionUtils.cleanOldKeys();
       const savedCookies = EncryptionUtils.loadDecrypted("academia_cookies");
@@ -75,30 +73,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         cdigest: cdigest || undefined,
       };
 
-      if (!isOnboarded) {
-        setIsExiting(true);
-        performLogin(creds).catch(() => {});
-        setTimeout(() => {
-          router.push("/onboarding");
-        }, 300);
-      } else {
-        setLoading(true);
-        try {
-          const data = await performLogin(creds);
-          onLogin(data);
-        } catch (err: any) {
-          if (err?.type === "CAPTCHA_REQUIRED") {
-            setCaptchaImage(err.image);
-            setCdigest(err.cdigest);
-            setError(err.message || "Please enter the CAPTCHA.");
-            setCaptchaInput("");
-          } else {
-            setCaptchaImage(null);
-            setCdigest(null);
-            setError(err.message || "auth failed");
-          }
-          setLoading(false);
+      setLoading(true);
+      try {
+        const data = await performLogin(creds);
+        onLogin(data);
+      } catch (err: any) {
+        if (err?.type === "CAPTCHA_REQUIRED") {
+          setCaptchaImage(err.image);
+          setCdigest(err.cdigest);
+          setError(err.message || "Please enter the CAPTCHA.");
+          setCaptchaInput("");
+        } else {
+          setCaptchaImage(null);
+          setCdigest(null);
+          setError(err.message || "auth failed");
         }
+        setLoading(false);
       }
     } catch (err: any) {
       if (err?.type === "CAPTCHA_REQUIRED") {

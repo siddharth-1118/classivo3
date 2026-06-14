@@ -500,10 +500,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
-    const onboarded = localStorage.getItem("classivo_onboarded") === "true";
-    if (onboarded) {
-      document.cookie = "classivo_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
-    }
+    localStorage.setItem("classivo_onboarded", "true");
+    document.cookie = "classivo_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
 
     if (userData) {
       const creds = EncryptionUtils.loadDecrypted("classivo_credentials");

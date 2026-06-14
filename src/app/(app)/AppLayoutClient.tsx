@@ -27,13 +27,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isInitialized || isAdminRoute) return;
 
     const checkRedirect = () => {
-      const isOnboarded = localStorage.getItem("classivo_onboarded") === "true";
-      if (!isOnboarded) {
-        setIsRedirecting(true);
-        router.replace("/onboarding");
-        return true;
-      }
-
       const hasData = localStorage.getItem("classivo_data");
       const hasCreds = localStorage.getItem("classivo_credentials");
 
@@ -47,9 +40,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
 
       if (!userData && !hasData && !hasCreds) {
-        setIsRedirecting(true);
-        router.replace("/login");
-        return true;
+        if (pathname !== "/") {
+          setIsRedirecting(true);
+          router.replace("/login");
+          return true;
+        }
       }
       return false;
     };
@@ -106,7 +101,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setIsSwipeDisabled
     }}>
       <div className="h-full w-full bg-theme-bg overflow-hidden relative">
-        {uiStyle === "brutalist" ? (
+        {!userData && pathname === "/" ? (
+          <div className="h-full w-full overflow-auto bg-[#0a0d17]">
+            {children}
+          </div>
+        ) : uiStyle === "brutalist" ? (
           <BrutalistThemeLayout {...sharedProps}>
             {children}
           </BrutalistThemeLayout>

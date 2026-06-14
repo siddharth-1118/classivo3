@@ -122,6 +122,30 @@ const HomeDashboard = ({
   const [isMetricExpanded, setIsMetricExpanded] = useState(false);
   const [metricMode, setMetricMode] = useState("attendance");
 
+  // State for dismissible APK banner
+  const [showApkBanner, setShowApkBanner] = useState(false);
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/download/app-debug.apk";
+
+  useEffect(() => {
+    const isNative = typeof window !== "undefined" && !!(window as any).Capacitor;
+    const dismissed = localStorage.getItem("classivo_apk_banner_dismissed") === "true";
+    if (!isNative && !dismissed) {
+      setShowApkBanner(true);
+    }
+  }, []);
+
+  const handleDismissBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.light();
+    localStorage.setItem("classivo_apk_banner_dismissed", "true");
+    setShowApkBanner(false);
+  };
+
+  const handleDownloadApk = () => {
+    Haptics.heavy();
+    window.location.href = apkUrl;
+  };
+
   const isTargetAudience =
     (profile?.dept || "")
       .toLowerCase()
@@ -384,6 +408,45 @@ const HomeDashboard = ({
               transition={springTransition}
               className="px-1.5 w-full flex flex-col gap-10 flex-none mt-1.5 shrink-0"
             >
+              {showApkBanner && (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={springTransition}
+                  className="mx-3 p-6 rounded-[32px] bg-[#3233ff] text-white flex items-center justify-between border-4 border-black relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-4 flex-1 pr-4 cursor-pointer" onClick={handleDownloadApk}>
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[28px] text-black">android</span>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black lowercase tracking-tight leading-none mb-1">
+                        install classivo for android
+                      </h4>
+                      <p className="text-[11px] text-white/70 font-bold leading-tight lowercase">
+                        get faster updates and offline timetable access
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDownloadApk}
+                      className="px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider bg-white text-black border-2 border-black hover:bg-white/95 active:scale-95 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      install
+                    </button>
+                    <button
+                      onClick={handleDismissBanner}
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center bg-black/10 border-2 border-black/25 text-white/80 hover:text-white active:scale-90 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               <BentoTile
                 as={motion.div}
                 layout
