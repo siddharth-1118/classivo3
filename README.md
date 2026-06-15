@@ -103,7 +103,7 @@ Create a `.env.local` file in the root directory:
 
 ```bash
 # Backend URL(s) — comma-separated for load balancing
-NEXT_PUBLIC_BACKEND_URLS="http://localhost:8000"
+NEXT_PUBLIC_BACKEND_URLS="https://classivo3.onrender.com"
 
 # Supabase (for realtime notifications)
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
@@ -113,7 +113,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
 NEXT_PUBLIC_ADMIN_KEY="your-admin-password"
 
 # APK download link shown in force-update overlay
-NEXT_PUBLIC_APK_URL="https://your-host/classivo.apk"
+NEXT_PUBLIC_APK_URL="https://classivo3.onrender.com/download/app-debug.apk"
 ```
 
 > [!TIP]

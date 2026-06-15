@@ -38,7 +38,7 @@ export default function SettingsPage({
   const { userData, refreshData, isUpdating } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/download/app-debug.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/download/app-debug.apk";
 
   // Diagnostic states
   const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");

@@ -2,7 +2,7 @@
   {
     "date": "01 Jul 2026",
     "day": "Wed",
-    "description": "Holiday",
+    "description": "Enrolment Day Starts B.Tech I / M.Tech (Int) I (Year)",
     "order": "-"
   },
   {
@@ -38,7 +38,7 @@
   {
     "date": "07 Jul 2026",
     "day": "Tue",
-    "description": "Holiday",
+    "description": "Enrolment Day Ends B.Tech I, M.Tech (Int) I (Year)",
     "order": "-"
   },
   {
@@ -98,7 +98,7 @@
   {
     "date": "17 Jul 2026",
     "day": "Fri",
-    "description": "Holiday",
+    "description": "Commencement of Classes for B.Tech I / M.Tech (Int) I (Year)",
     "order": "-"
   },
   {
@@ -188,7 +188,7 @@
   {
     "date": "01 Aug 2026",
     "day": "Sat",
-    "description": "Enrolment Day Starts B.Tech I / M.Tech (Int) I (Year)",
+    "description": "Holiday",
     "order": "-"
   },
   {
@@ -224,7 +224,7 @@
   {
     "date": "07 Aug 2026",
     "day": "Fri",
-    "description": "Enrolment Day Ends B.Tech I, M.Tech (Int) I (Year)",
+    "description": "Instructional Day",
     "order": "4"
   },
   {

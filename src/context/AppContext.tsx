@@ -281,11 +281,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setIsBackendError(true);
           try {
             const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server returned an invalid response (HTML). Please check ngrok.");
-        }
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Server returned an invalid response (HTML). Please check backend connectivity.");
+            }
 
-        const data = await response.json();
+            const data = await response.json();
             if (data.detail) setBackendErrorMsg(data.detail);
           } catch {}
           throw new Error("Backend error");
@@ -382,11 +382,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsBackendError(true);
         try {
           const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server returned an invalid response (HTML). Please check ngrok.");
-        }
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Server returned an invalid response (HTML). Please check backend connectivity.");
+          }
 
-        const data = await response.json();
+          const data = await response.json();
           if (data.detail) setBackendErrorMsg(data.detail);
         } catch {}
         return existingData;

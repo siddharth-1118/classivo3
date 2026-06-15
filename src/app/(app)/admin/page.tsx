@@ -7,7 +7,7 @@ import { fetchWithLoadBalancer } from "@/utils/backendProxy";
 import { APP_VERSION } from "@/utils/shared/version";
 
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_KEY || "srmnest-admin-2024";
-const DEFAULT_APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://srm-nest-bridge.loca.lt/download/app-debug.apk";
+const DEFAULT_APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/download/app-debug.apk";
 
 export default function AdminPage() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);

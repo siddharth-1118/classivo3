@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 
 // --- constants ---
-const NEST_URL = process.env.NEXT_PUBLIC_NEST_URL || "https://srm-nest-hub.loca.lt";
+const NEST_URL = process.env.NEXT_PUBLIC_NEST_URL || "https://classivo3.onrender.com";
 const SSO_SECRET = process.env.NEXT_PUBLIC_SSO_SECRET || "classivo_internal_secret_token_123";
 
 const CATEGORIES = [

@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: "bottom-right",
   },
-  allowedDevOrigins: ["nancey-pandemoniacal-candra.ngrok-free.dev", "srm-nest-bridge.loca.lt", "*.loca.lt"],
+  allowedDevOrigins: ["classivo3.onrender.com"],
   env: {
     NEXT_PUBLIC_FCM_ENABLED: String(hasGoogleServices),
   },

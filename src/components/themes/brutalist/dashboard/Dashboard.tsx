@@ -124,7 +124,7 @@ const HomeDashboard = ({
 
   // State for dismissible APK banner
   const [showApkBanner, setShowApkBanner] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/download/app-debug.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/download/app-debug.apk";
 
   useEffect(() => {
     const isNative = typeof window !== "undefined" && !!(window as any).Capacitor;

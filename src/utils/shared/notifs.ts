@@ -1,7 +1,7 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URLS || "https://srm-nest-bridge.loca.lt";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URLS || "https://classivo3.onrender.com";
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
   if (Capacitor.isNativePlatform()) {
