@@ -38,7 +38,7 @@ export default function SettingsPage({
   const { userData, refreshData, isUpdating } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/download/app-debug.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "/classivo.apk";
 
   // Diagnostic states
   const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");
@@ -238,7 +238,15 @@ export default function SettingsPage({
 
               {/* Get Android App */}
               <div 
-                onClick={() => { Haptics.selection(); window.location.href = apkUrl; }}
+                onClick={() => {
+                  Haptics.selection();
+                  const a = document.createElement("a");
+                  a.href = apkUrl;
+                  a.download = "classivo.apk";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
                 className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
               >
                 <div className="p-2 bg-cyan-400/10 w-fit rounded-lg group-hover:bg-cyan-400/20 transition-colors text-cyan-300">
