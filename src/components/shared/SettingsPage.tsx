@@ -38,6 +38,7 @@ export default function SettingsPage({
   const { userData, refreshData, isUpdating } = useApp();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
+  const [showApkModal, setShowApkModal] = useState(false);
   const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "/classivo.apk";
 
   // Diagnostic states
@@ -238,15 +239,7 @@ export default function SettingsPage({
 
               {/* Get Android App */}
               <div 
-                onClick={() => {
-                  Haptics.selection();
-                  const a = document.createElement("a");
-                  a.href = apkUrl;
-                  a.download = "classivo.apk";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                }}
+                onClick={() => { Haptics.selection(); setShowApkModal(true); }}
                 className="glass-panel rounded-xl p-4 flex flex-col justify-between h-40 hover:border-primary-container/30 border border-outline-variant/10 transition-all cursor-pointer group shadow-sm text-left"
               >
                 <div className="p-2 bg-cyan-400/10 w-fit rounded-lg group-hover:bg-cyan-400/20 transition-colors text-cyan-300">
@@ -303,6 +296,100 @@ export default function SettingsPage({
       </motion.div>
 
       <CourseDetailsPage isOpen={showCourseDetails} onClose={() => setShowCourseDetails(false)} />
+
+      {/* APK Install Guide Modal */}
+      <AnimatePresence>
+        {showApkModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowApkModal(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0, transition: { type: "spring", damping: 28, stiffness: 350 } }}
+              exit={{ y: "100%", transition: { duration: 0.25, ease: "easeIn" } }}
+              className="fixed bottom-0 left-0 right-0 z-[61] rounded-t-3xl overflow-hidden"
+              style={{ background: "#0f131f", border: "1px solid rgba(110,231,247,0.12)" }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              <div className="px-6 pt-3 pb-10">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2.5 rounded-2xl bg-cyan-400/10">
+                    <span className="material-symbols-outlined text-cyan-300 text-[28px]">android</span>
+                  </div>
+                  <div>
+                    <h2 className="text-[20px] font-black text-white">Install Android App</h2>
+                    <p className="text-[11px] text-cyan-400/60 font-bold uppercase tracking-widest">Classivo v1.4.0</p>
+                  </div>
+                </div>
+
+                {/* Info Banner */}
+                <div className="rounded-2xl p-4 mb-5 flex gap-3 items-start"
+                  style={{ background: "rgba(250,204,21,0.07)", border: "1px solid rgba(250,204,21,0.2)" }}>
+                  <span className="material-symbols-outlined text-yellow-400 text-[20px] shrink-0 mt-0.5">info</span>
+                  <p className="text-[13px] text-yellow-200/80 font-semibold leading-relaxed">
+                    Android will show a security warning. This is normal for apps outside the Play Store — just follow the steps below.
+                  </p>
+                </div>
+
+                {/* Steps */}
+                <div className="space-y-3 mb-6">
+                  {[
+                    { icon: "download", step: "1", label: "Tap \"Download APK\" below", sub: "The file will save to your Downloads folder" },
+                    { icon: "folder_open", step: "2", label: "Open the downloaded file", sub: "Find classivo.apk in your notifications or Files app" },
+                    { icon: "security", step: "3", label: 'Tap \"Install anyway\"\'', sub: "Android shows this warning for all non-Play Store apps" },
+                    { icon: "check_circle", step: "4", label: "Done! Open Classivo", sub: "Find it on your home screen or app drawer" },
+                  ].map(({ icon, step, label, sub }) => (
+                    <div key={step} className="flex items-center gap-3 rounded-xl p-3"
+                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div className="w-8 h-8 rounded-full bg-cyan-400/10 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-cyan-300 text-[16px]">{icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[13px] font-black text-white">{label}</p>
+                        <p className="text-[11px] text-white/40 font-medium mt-0.5">{sub}</p>
+                      </div>
+                      <span className="text-[10px] font-black text-white/20 uppercase">Step {step}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Download Button */}
+                <button
+                  onClick={() => {
+                    Haptics.success();
+                    const a = document.createElement("a");
+                    a.href = apkUrl;
+                    a.download = "classivo.apk";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => setShowApkModal(false), 500);
+                  }}
+                  className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                  style={{
+                    background: "linear-gradient(135deg, #22d3ee 0%, #818cf8 100%)",
+                    color: "#0f131f",
+                    boxShadow: "0 4px 24px rgba(34,211,238,0.25)"
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[20px]">download</span>
+                  Download APK
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
