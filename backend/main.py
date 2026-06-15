@@ -7,7 +7,7 @@ import httpx
 import uvicorn
 from core.academia_client import AcademiaClient
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from models.schemas import Credentials
 from services.marks_service import MarksService
@@ -73,6 +73,18 @@ def get_now():
 @app.get("/version")
 async def get_version():
     return {"version": "2.0.0"}
+
+@app.get("/download/app-debug.apk")
+async def download_apk():
+    apk_path = os.path.join(os.path.dirname(__file__), "app-debug.apk")
+    if os.path.exists(apk_path):
+        return FileResponse(
+            apk_path,
+            media_type="application/vnd.android.package-archive",
+            filename="classivo.apk"
+        )
+    else:
+        raise HTTPException(status_code=404, detail="APK not found")
 
 @app.post("/refresh")
 @limiter.limit("3/minute")
