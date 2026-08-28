@@ -61,7 +61,7 @@ export const POST = withErrorHandling(async (req: NextRequest): Promise<Response
 
   try {
     // Call the external backend (srm-api-wrapper) for Academia login
-    const backendUrl = process.env.ACADEMIA_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = process.env.ACADEMIA_BACKEND_URL || process.env.PORTAL_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URLS || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
     
     const initResp = await fetch(`${backendUrl}/api/academia/init`, {
       method: 'POST',
