@@ -1,0 +1,19 @@
+export const dynamic = 'force-dynamic';
+
+import type { NextRequest } from "next/server";
+import { withErrorHandling } from "@/lib/server/auth/route-helpers";
+import type { DashboardData } from "@/lib/types/portal";
+import {
+  fetchPortalDataResponse,
+  type SnapshotDataType,
+} from "../_shared";
+import { SRMISTPortalProvider } from "@/lib/server/portal/srmist-provider";
+
+export const GET = withErrorHandling(async (req: NextRequest): Promise<Response> => {
+  return fetchPortalDataResponse<DashboardData>(
+    req,
+    "dashboard" as SnapshotDataType,
+    (provider: SRMISTPortalProvider) =>
+      provider.getAuthenticatedDashboard.bind(provider)
+  );
+});

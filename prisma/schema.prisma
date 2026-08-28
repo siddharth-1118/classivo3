@@ -1,0 +1,125 @@
+// For production, swap provider="sqlite" with provider="postgresql"
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum PortalConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  EXPIRED
+  ERROR
+}
+
+enum ConsentAction {
+  GRANTED
+  REVOKED
+  CONNECT_ATTEMPT
+  DISCONNECT
+}
+
+enum SnapshotType {
+  DASHBOARD
+  PROFILE
+  GRADES
+  HOSTEL
+  EXAMS
+}
+
+enum SyncJobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id              String             @id @default(cuid())
+  email           String             @unique
+  passwordHash    String
+  name            String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  portalConnection PortalConnection?
+  consentLogs     ConsentLog[]
+  studentSnapshots StudentSnapshot[]
+  syncJobs        SyncJob[]
+  sessions        SessionMetadata[]
+}
+
+model PortalConnection {
+  id                   String                  @id @default(cuid())
+  userId               String                  @unique
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               PortalConnectionStatus
+  netId                String
+  portalSessionCookieJar Json?
+  lastSyncedAt         DateTime
+  connectedAt          DateTime
+  disconnectedAt       DateTime?
+  errorMessage         String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+}
+
+model ConsentLog {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     ConsentAction
+  ip         String
+  userAgent  String
+  netId      String?
+  success    Boolean?
+  errorCode  String?
+  createdAt  DateTime      @default(now())
+}
+
+model StudentSnapshot {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            SnapshotType
+  data            Json
+  sourceTimestamp DateTime
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, type])
+}
+
+model SyncJob {
+  id           String        @id @default(cuid())
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status       SyncJobStatus
+  startedAt    DateTime
+  finishedAt   DateTime?
+  errorMessage String?
+  results      SyncResult[]
+}
+
+model SyncResult {
+  id           String        @id @default(cuid())
+  syncJobId    String
+  syncJob      SyncJob       @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+  snapshotType SnapshotType
+  success      Boolean
+  recordCount  Int?
+  errorMessage String?
+  createdAt    DateTime      @default(now())
+}
+
+model SessionMetadata {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  revoked      Boolean  @default(false)
+  ip           String?
+  userAgent    String?
+}
