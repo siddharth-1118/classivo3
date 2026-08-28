@@ -228,6 +228,9 @@ export interface PortalLoginSession {
   captchaAnswer?: string;
   _cookieJarSer?: unknown;
   netId?: string;
+  domainFieldName?: string;
+  captchaFieldName?: string;
+  randomDelimiter?: string;
 }
 
 export interface PortalAuthenticatedSession {

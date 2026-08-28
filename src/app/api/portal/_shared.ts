@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
 import axios from "axios";
-import type { User } from "@prisma/client";
-import type { SnapshotType } from "@prisma/client";
+
+type User = { id: string; email: string; name?: string | null; createdAt: Date; updatedAt: Date };
+type SnapshotType = 'DASHBOARD' | 'PROFILE' | 'GRADES' | 'HOSTEL' | 'EXAMS';
 import {
   requireAppUser,
   successResponse,

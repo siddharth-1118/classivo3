@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic';
 
 import type { NextRequest } from "next/server";
-import type { SnapshotType } from "@prisma/client";
 import axios from "axios";
+
+type SnapshotType = 'DASHBOARD' | 'PROFILE' | 'GRADES' | 'HOSTEL' | 'EXAMS';
 import {
   requireAppUser,
   withErrorHandling,

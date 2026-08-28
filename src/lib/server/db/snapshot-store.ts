@@ -1,4 +1,3 @@
-import { Prisma, type SnapshotType, type ConsentAction, type PortalConnectionStatus } from "@prisma/client";
 import { prisma } from "@/lib/server/db/prisma";
 import type {
   DashboardData,
@@ -7,7 +6,11 @@ import type {
   HostelData,
   ExamTimetableData,
 } from "@/lib/types/portal";
-import type { User } from "@prisma/client";
+
+type SnapshotType = 'DASHBOARD' | 'PROFILE' | 'GRADES' | 'HOSTEL' | 'EXAMS';
+type ConsentAction = 'GRANTED' | 'REVOKED' | 'CONNECT_ATTEMPT' | 'DISCONNECT';
+type PortalConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'EXPIRED' | 'ERROR';
+type User = { id: string; email: string; name?: string | null; createdAt: Date; updatedAt: Date };
 
 const SNAPSHOT_TYPES: Record<string, SnapshotType> = {
   dashboard: "DASHBOARD",
