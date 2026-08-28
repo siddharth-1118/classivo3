@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import type { User } from '@prisma/client';
+type User = { id: string; email: string; name?: string | null; createdAt: Date; updatedAt: Date };
 import type { ApiErrorCode } from '@/lib/types/portal';
 import { SESSION_COOKIE_NAME, getSessionFromToken } from './session';
 

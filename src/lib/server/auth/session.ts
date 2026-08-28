@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
-import type { SessionMetadata, User } from '@prisma/client';
+type User = { id: string; email: string; name?: string | null; createdAt: Date; updatedAt: Date };
+type SessionMetadata = { id: string; userId: string; token: string; createdAt: Date; expiresAt: Date };
 import { prisma } from '@/lib/server/db/prisma';
 
 export const SESSION_COOKIE_NAME = process.env.APP_AUTH_COOKIE_NAME ?? 'app_session';

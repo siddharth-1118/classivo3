@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import type { z, ZodSchema } from 'zod';
 import { portalSessionStore } from '@/lib/server/portal/session-store';
 import type { ApiErrorCode, PortalAuthenticatedSession } from '@/lib/types/portal';
-import type { User } from '@prisma/client';
+type User = { id: string; email: string; name?: string | null; createdAt: Date; updatedAt: Date };
 import { SESSION_COOKIE_NAME, getSessionFromToken } from '@/lib/server/auth/session';
 
 export type { ApiErrorCode, PortalAuthenticatedSession };

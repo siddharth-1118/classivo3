@@ -61,11 +61,11 @@ export async function persistSnapshot(
       create: {
         userId,
         type: snapshotType,
-        data: data as unknown as Prisma.InputJsonValue,
+        data: data as unknown as any,
         sourceTimestamp,
       },
       update: {
-        data: data as unknown as Prisma.InputJsonValue,
+        data: data as unknown as any,
         sourceTimestamp,
         createdAt: new Date(),
       },
@@ -127,8 +127,8 @@ export async function upsertPortalConnection(
         errorMessage: opts.errorMessage ?? null,
         portalSessionCookieJar:
           opts.portalSessionCookieJar == null
-            ? Prisma.JsonNull
-            : (opts.portalSessionCookieJar as Prisma.InputJsonValue),
+            ? null
+            : (opts.portalSessionCookieJar as any),
       },
       update: {
         status: opts.status,
@@ -138,8 +138,8 @@ export async function upsertPortalConnection(
         errorMessage: opts.errorMessage ?? null,
         portalSessionCookieJar:
           opts.portalSessionCookieJar == null
-            ? Prisma.JsonNull
-            : (opts.portalSessionCookieJar as Prisma.InputJsonValue),
+            ? null
+            : (opts.portalSessionCookieJar as any),
       },
     });
   } catch (err) {
@@ -154,7 +154,7 @@ export async function disconnectPortalConnection(userId: string): Promise<void> 
       data: {
         status: "DISCONNECTED",
         disconnectedAt: new Date(),
-        portalSessionCookieJar: Prisma.JsonNull,
+        portalSessionCookieJar: null,
         errorMessage: null,
       },
     });
@@ -193,7 +193,7 @@ export async function appendConsentLog(
 
 export async function startSyncJob(
   userId: string | null,
-  opts?: Pick<Prisma.SyncJobUncheckedCreateInput, "status" | "startedAt" | "finishedAt" | "errorMessage">
+  opts?: Pick<any, "status" | "startedAt" | "finishedAt" | "errorMessage">
 ) {
   try {
     return await prisma.syncJob.create({
