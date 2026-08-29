@@ -165,12 +165,10 @@ export async function fetchCaptchaImage(
 
   const domainProof = Buffer.from(`${nonce}:sp.srmist.edu.in`).toString('base64');
 
-  // The CAPTCHA URL is already relative (e.g., /srmiststudentportal/SCaptchaServlet?ts=...)
-  // Just use it directly with the client (baseURL is BASE_URL)
   const response = await client.get(captchaUrl, {
     responseType: 'arraybuffer',
     headers: {
-      'Referer': '/srmiststudentportal/students/loginManager/youLogin.jsp',
+      'Referer': 'https://sp.srmist.edu.in/srmiststudentportal/students/loginManager/youLogin.jsp',
       'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
       'X-Domain-Proof': domainProof,
     },
