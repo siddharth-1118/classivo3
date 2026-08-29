@@ -10,8 +10,8 @@ const envSchema = z.object({
 
   MOCK_MODE: z
     .enum(['true', 'false', '1', '0', 'TRUE', 'FALSE', 'yes', 'no', 'YES', 'NO'])
-    .transform((v) => ['true', '1', 'TRUE', 'yes', 'YES'].includes(v))
-    .default(false),
+    .default('false')
+    .transform((v) => ['true', '1', 'TRUE', 'yes', 'YES'].includes(v)),
 
   SESSION_TTL_MS: z.coerce.number().int().min(60000).default(604800000),
   SESSION_TTL_MINUTES: z.coerce.number().int().min(1).max(1440).default(30),
@@ -49,13 +49,13 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   CORS_CREDENTIALS: z
     .enum(['true', 'false', '1', '0'])
-    .transform((v) => v === 'true' || v === '1')
-    .default(true),
+    .default('true')
+    .transform((v) => v === 'true' || v === '1'),
 
   RATE_LIMIT_ENABLED: z
     .enum(['true', 'false', '1', '0', 'TRUE', 'FALSE'])
-    .transform((v) => v === 'true' || v === '1' || v === 'TRUE')
-    .default(true),
+    .default('true')
+    .transform((v) => v === 'true' || v === '1' || v === 'TRUE'),
   RATE_LIMIT_REQUESTS: z.coerce.number().int().min(1).default(100),
   RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(1).default(60),
 
@@ -69,8 +69,8 @@ const envSchema = z.object({
     },
     z
       .enum(['true', 'false', '1', '0', 'TRUE', 'FALSE'])
-      .transform((v) => v === 'true' || v === '1' || v === 'TRUE')
-      .default(false),
+      .default('false')
+      .transform((v) => v === 'true' || v === '1' || v === 'TRUE'),
   ),
 
   LOG_LEVEL: z
@@ -79,18 +79,18 @@ const envSchema = z.object({
 
   CAPTCHA_REQUIRED: z
     .enum(['true', 'false', '1', '0'])
-    .transform((v) => v === 'true' || v === '1')
-    .default(true),
+    .default('true')
+    .transform((v) => v === 'true' || v === '1'),
 
   ENABLE_SNAPSHOTS: z
     .enum(['true', 'false', '1', '0'])
-    .transform((v) => v === 'true' || v === '1')
-    .default(true),
+    .default('true')
+    .transform((v) => v === 'true' || v === '1'),
 
   ENABLE_CONSENT_LOGGING: z
     .enum(['true', 'false', '1', '0'])
-    .transform((v) => v === 'true' || v === '1')
-    .default(true),
+    .default('true')
+    .transform((v) => v === 'true' || v === '1'),
 
   NEXT_PUBLIC_APP_NAME: z.string().default('SRM Student Companion'),
 });
