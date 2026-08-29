@@ -318,11 +318,24 @@ export async function submitLoginHttp(
       'Referer': LOGIN_PAGE_URL.replace(BASE_URL, ''),
       'Origin': BASE_URL,
     },
-    maxRedirects: 10,
+    maxRedirects: 0,
   });
 
-  const html = response.data as string;
-  const finalUrl = response.request?.res?.responseUrl || LOGIN_PAGE_URL.replace(BASE_URL, '');
+  let finalResponse = response;
+  if (response.status === 302 || response.status === 303) {
+    const redirectUrl = response.headers['location'];
+    if (redirectUrl) {
+      console.log(`[HTTP AUTH] Following redirect to ${redirectUrl}...`);
+      finalResponse = await client.get(redirectUrl, {
+        headers: {
+          'Referer': 'https://sp.srmist.edu.in/srmiststudentportal/students/loginManager/youLogin.jsp',
+        }
+      });
+    }
+  }
+
+  const html = finalResponse.data as string;
+  const finalUrl = finalResponse.request?.res?.responseUrl || finalResponse.headers['location'] || LOGIN_PAGE_URL.replace(BASE_URL, '');
   const $ = cheerio.load(html);
 
   // Check for errors
