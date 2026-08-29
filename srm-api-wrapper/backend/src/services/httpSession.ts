@@ -302,18 +302,20 @@ export async function submitLoginHttp(
   const hasLogout = $('a[href*="logout"], a[href*="Logout"]').length > 0;
 
   // Check for specific error messages
-  const errorElements = $('text()').filter((_, el) => {
-    const text = $(el).text().trim().toLowerCase();
-    return text.includes('invalid captcha') || text.includes('captcha is incorrect') ||
-           text.includes('invalid username') || text.includes('password') ||
-           text.includes('login failed');
-  });
-
   let errorText = '';
-  errorElements.each((_, el) => {
+  const errorPatterns = [
+    'invalid captcha', 'captcha is incorrect',
+    'invalid username', 'invalid password', 'login failed',
+    'incorrect captcha', 'captcha mismatch', 'wrong captcha'
+  ];
+
+  $('div, span, p, font, td').each((_, el) => {
     const text = $(el).text().trim();
     if (text.length > 2 && text.length < 200) {
-      errorText = text;
+      const lower = text.toLowerCase();
+      if (errorPatterns.some(p => lower.includes(p))) {
+        errorText = text;
+      }
     }
   });
 
