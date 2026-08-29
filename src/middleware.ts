@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ── Maintenance mode ──────────────────────────────────────────────
+  // Redirect every page request to /maintenance when flag is enabled.
+  // Excludes: /maintenance itself, /api/* routes, static assets.
+  const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE === "true";
+  const isMaintenancePage = pathname === "/maintenance";
+  const isApi = pathname.startsWith("/api/");
+  const isStatic =
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/fonts/") ||
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".json") ||
+    pathname.endsWith(".js") ||
+    pathname.endsWith(".css");
+
+  if (isMaintenance && !isMaintenancePage && !isApi && !isStatic) {
+    return NextResponse.redirect(new URL("/maintenance", request.url));
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   const response = NextResponse.next();
 
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -47,5 +70,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
