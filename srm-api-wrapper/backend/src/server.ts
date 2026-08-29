@@ -788,20 +788,35 @@ async function navigateToSrmSection(session: HttpSRMSession, formId: number, sec
     throw Object.assign(new Error('SRM_SESSION_EXPIRED'), { code: 'SRM_SESSION_EXPIRED' });
   }
 
+  // Step 1: POST to HRDSystem.jsp to get the shell page for this formId
+  let shellHtml = '';
   try {
-    // Strategy 1: Form submission to HRDSystem.jsp
-    const result = await navigateToSection(session.client, html, formId, sectionName);
-    session.dashboardHtml = result.html; // Update cached HTML
-    return result.html;
+    const shellResult = await navigateToSection(session.client, html, formId, sectionName);
+    shellHtml = shellResult.html;
+    session.dashboardHtml = shellHtml; // Update cached HTML
   } catch (err: any) {
     if (err.message === 'SRM_SESSION_EXPIRED') throw err;
-    console.log(`[NAV] Strategy 1 failed: ${err.message}`);
+    console.log(`[NAV] Shell navigation failed: ${err.message}`);
+    throw err;
   }
 
-  throw Object.assign(new Error('SRM_NAVIGATION_FAILED'), {
-    code: 'SRM_NAVIGATION_FAILED',
-    details: `Could not navigate to ${sectionName}. Try logging in again.`
-  });
+  // Step 2: Extract the funShow() JSP URL from the shell page and do the AJAX POST
+  // The shell page auto-calls funShow(formId, '../../students/report/someReport.jsp') on load
+  const funShowMatch = shellHtml.match(/funShow\(\s*\d+\s*,\s*['"]([^'"]+)['"]/);
+  if (funShowMatch) {
+    const jspUrl = funShowMatch[1];
+    console.log(`[NAV] Found funShow URL: ${jspUrl}, performing AJAX fetch...`);
+    try {
+      const ajaxResult = await navigateViaAjax(session.client, shellHtml, formId, jspUrl);
+      return ajaxResult.html;
+    } catch (err: any) {
+      if (err.message === 'SRM_SESSION_EXPIRED') throw err;
+      console.log(`[NAV] AJAX navigation failed: ${err.message}, falling back to shell HTML`);
+    }
+  }
+
+  // Fallback: return the shell HTML if no funShow URL found
+  return shellHtml;
 }
 
 // --------------------------------------------------------------------
