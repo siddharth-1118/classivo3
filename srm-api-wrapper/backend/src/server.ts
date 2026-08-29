@@ -32,7 +32,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Parse allowed origins from environment (comma-separated)
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'https://classivo-1.vercel.app,http://localhost:9000,http://localhost:3000,http://localhost:5173')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
@@ -267,6 +267,14 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
 // can communicate with this backend.
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
+  // Extract session/connection ID from body and put it in headers for requireAuth
+  if (req.body && req.body.connectionId && !req.headers['x-session-id']) {
+    req.headers['x-session-id'] = req.body.connectionId;
+  }
+  if (req.body && req.body.sessionId && !req.headers['x-session-id']) {
+    req.headers['x-session-id'] = req.body.sessionId;
+  }
+
   // Map /portal/srm/* to the correct /api/auth/* route
   const portalInitMap: Record<string, string> = {
     '/portal/srm/init':              '/api/auth/start',
@@ -401,7 +409,11 @@ app.post('/api/auth/start', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       sessionId,
-      captcha: captchaBase64
+      connectionId: sessionId,
+      captcha: captchaBase64,
+      captchaImage: captchaBase64,
+      captchaCdigest: loginPage.challengeId || sessionId,
+      cdigest: loginPage.challengeId || sessionId
     });
   } catch (err) {
     console.error("[AUTH START] Error:", err);
@@ -438,7 +450,10 @@ app.post('/api/auth/captcha/refresh', requireAuth, async (req: AuthenticatedRequ
 
     return res.json({
       success: true,
-      captcha: captchaBase64
+      captcha: captchaBase64,
+      captchaImage: captchaBase64,
+      captchaCdigest: session.challengeId || session.sessionId,
+      cdigest: session.challengeId || session.sessionId
     });
   } catch (err) {
     console.error("[CAPTCHA REFRESH] Error:", err);
@@ -453,8 +468,9 @@ app.post('/api/auth/captcha/refresh', requireAuth, async (req: AuthenticatedRequ
 });
 
 app.post('/api/auth/login', async (req: Request, res: Response) => {
-  const { sessionId: bodySessionId, netId, password, captcha } = req.body;
-  const sessionId = bodySessionId || (req.headers['x-session-id'] as string);
+  const { sessionId: bodySessionId, connectionId, netId, registrationNumber, password, captcha } = req.body;
+  const sessionId = bodySessionId || connectionId || (req.headers['x-session-id'] as string);
+  const actualNetId = netId || registrationNumber;
 
   if (!sessionId) {
     return res.status(400).json({
@@ -481,7 +497,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     });
   }
 
-  if (!netId || !password || !captcha) {
+  if (!actualNetId || !password || !captcha) {
     return res.status(400).json({
       success: false,
       error: { code: 'INVALID_CREDENTIALS', message: 'NetID, Password, and Captcha are all required.' }
@@ -497,7 +513,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 
     // Submit login via HTTP
     const result = await submitLoginHttp(session.client, {
-      netId: netId.trim(),
+      netId: actualNetId.trim(),
       password,
       captcha: captcha.trim(),
       captchaFieldName: session.captchaFieldName || 'cptoken',
@@ -509,7 +525,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     if (result.success) {
       session.state = 'AUTHENTICATED';
       session.authenticated = true;
-      session.netId = netId.trim().split('@')[0];
+      session.netId = actualNetId.trim().split('@')[0];
 
       // Cache the dashboard HTML for navigation
       session.dashboardHtml = result.html;
@@ -539,7 +555,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       });
     } else {
       session.authenticated = false;
-      session.state = result.error?.toLowerCase().includes('captcha')
+      const isCaptchaError = result.error?.toLowerCase().includes('captcha');
+      session.state = isCaptchaError
         ? 'CAPTCHA_REQUIRED'
         : 'AUTH_FAILED';
 
@@ -552,20 +569,50 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         console.error(`[SUPABASE] Failed to update login failure:`, err);
       }
 
-      const errorCode: SrmErrorCode = result.error?.toLowerCase().includes('captcha')
+      const errorCode: SrmErrorCode = isCaptchaError
         ? 'INVALID_CAPTCHA'
         : result.error?.toLowerCase().includes('password') || result.error?.toLowerCase().includes('username')
           ? 'INVALID_CREDENTIALS'
           : 'AUTHENTICATION_UNKNOWN';
 
       console.log(`[AUTH LOGIN] Failed: ${errorCode}`);
+
+      let captchaResponseFields = {};
+      if (isCaptchaError) {
+        try {
+          const loginPage = await fetchLoginPage(session.client);
+          session.captchaFieldName = loginPage.captchaFieldName;
+          session.domainFieldName = loginPage.domainFieldName;
+          session.randomDelimiter = loginPage.randomDelimiter;
+          session.challengeId = loginPage.challengeId;
+          session.captchaUrl = loginPage.captchaUrl;
+          session.captchaGeneratedAt = Date.now();
+          session.loginPageHtml = loginPage.html;
+          const captchaBase64 = await fetchCaptchaImage(session.client, loginPage.captchaUrl);
+
+          captchaResponseFields = {
+            captcha_required: true,
+            captchaImage: captchaBase64,
+            captcha_image: captchaBase64,
+            captchaCdigest: loginPage.challengeId || sessionId,
+            cdigest: loginPage.challengeId || sessionId,
+            connectionId: sessionId
+          };
+        } catch (e) {
+          console.error("[AUTH LOGIN] Failed to re-fetch captcha:", e);
+        }
+      }
+
       return res.json({
         success: false,
         authenticated: false,
+        type: isCaptchaError ? 'CAPTCHA_REQUIRED' : undefined,
+        ...captchaResponseFields,
         error: {
           code: errorCode,
           message: result.error || 'Authentication failed. Please verify credentials and captcha.'
-        }
+        },
+        message: result.error || 'Authentication failed. Please verify credentials and captcha.'
       });
     }
   } catch (err) {
