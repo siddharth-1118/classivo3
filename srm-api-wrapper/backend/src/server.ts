@@ -520,6 +520,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       domainFieldName: session.domainFieldName || 'dtoken',
       randomDelimiter: session.randomDelimiter || '',
       challengeId: session.challengeId || '',
+      loginPageHtml: session.loginPageHtml || '',
     });
 
     if (result.success) {

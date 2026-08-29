@@ -248,9 +248,10 @@ export async function submitLoginHttp(
     domainFieldName: string;
     randomDelimiter: string;
     challengeId: string;
+    loginPageHtml?: string;
   }
 ): Promise<{ success: boolean; html: string; url: string; error?: string }> {
-  const { netId, password, captcha, captchaFieldName, domainFieldName, randomDelimiter, challengeId } = params;
+  const { netId, password, captcha, captchaFieldName, domainFieldName, randomDelimiter, challengeId, loginPageHtml } = params;
 
   // Clean the NetID
   const cleanNetId = netId.includes('@') ? netId.split('@')[0] : netId;
@@ -261,14 +262,30 @@ export async function submitLoginHttp(
   formData.append('password', password);
   formData.append('captcha', captcha.trim());
 
-  // Dynamic token fields (from SECURE_CONFIG)
-  formData.append(captchaFieldName, 'true'); // CAPTCHA validation token
-  formData.append(domainFieldName, randomDelimiter); // Domain validation token
+  // Dynamic token fields (from SECURE_CONFIG via guardlogin.js / guardloginbottom.js)
+  // Calculate domain validation value: base64 of reversed hostname (ni.ude.tsimrs.ps)
+  const reversedHost = 'ni.ude.tsimrs.ps';
+  const domainValue = Buffer.from(reversedHost).toString('base64');
+  formData.append(domainFieldName, domainValue);
 
-  // Honeypot field (must be empty)
-  const honeypotMatch = (await client.get(LOGIN_PAGE_URL.replace(BASE_URL, ''), { maxRedirects: 10 })).data.match(/name="(ph_[^"]+)"/);
-  if (honeypotMatch) {
-    formData.append(honeypotMatch[1], '');
+  // Calculate captcha validation value: base64 of timeElapsed + randomDelimiter + interactCount
+  const timeElapsed = Math.floor(Math.random() * 5) + 3; // 3-7 seconds
+  const interactCount = Math.floor(Math.random() * 20) + 15; // 15-35 interactions
+  const trapPayload = `${timeElapsed}${randomDelimiter}${interactCount}`;
+  const captchaValue = Buffer.from(trapPayload).toString('base64');
+  formData.append(captchaFieldName, captchaValue);
+
+  // Honeypot field (must be empty). Extract from pre-fetched HTML to avoid making extra requests
+  // which resets the CAPTCHA session on the SRM server.
+  let honeypotFieldName = '';
+  if (loginPageHtml) {
+    const honeypotMatch = loginPageHtml.match(/name="(ph_[^"]+)"/);
+    if (honeypotMatch) {
+      honeypotFieldName = honeypotMatch[1];
+    }
+  }
+  if (honeypotFieldName) {
+    formData.append(honeypotFieldName, '');
   }
 
   // Fingerprint fields
