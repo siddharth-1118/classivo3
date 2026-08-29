@@ -705,7 +705,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
                       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
                       <input
                         value={captchaInput}
-                        onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                        onChange={(e) => setCaptchaInput(e.target.value)}
                         placeholder="Enter text"
                         className="flex-1 bg-transparent text-[13px] font-medium outline-none placeholder:text-gray-600 tracking-wider"
                         style={{ color: "#f4f4f4", ...mono }}
@@ -916,7 +916,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
                       </div>
                       <div className="flex-1 flex items-center gap-2 px-3 rounded-xl"
                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <input value={portalCaptchaInput} onChange={(e) => setPortalCaptchaInput(e.target.value.toUpperCase())}
+                        <input value={portalCaptchaInput} onChange={(e) => setPortalCaptchaInput(e.target.value)}
                           placeholder="Enter text" className="flex-1 bg-transparent text-[13px] font-medium outline-none placeholder:text-gray-600 tracking-wider"
                           style={{ color: "#f4f4f4", ...mono }} />
                         <button type="button" onClick={refreshPortalCaptcha} disabled={portalCaptchaLoading || !portalConnectionId}
