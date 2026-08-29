@@ -10,6 +10,7 @@ import AppWrapper from "@/components/shared/AppWrapper";
 import PwaBuster from "@/components/shared/PwaBuster";
 import AdminNotificationToast from "@/components/shared/AdminNotificationToast";
 import ForceUpdateOverlay from "@/components/shared/ForceUpdateOverlay";
+import MaintenancePage from "@/components/shared/MaintenancePage";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -164,6 +165,8 @@ export default function RootLayout({
           {/* Global overlays — outside ThemeProvider so they always render */}
           <AdminNotificationToast />
           <ForceUpdateOverlay />
+          {/* Maintenance mode — set NEXT_PUBLIC_MAINTENANCE=true to enable */}
+          {process.env.NEXT_PUBLIC_MAINTENANCE === "true" && <MaintenancePage />}
         </AppProvider>
         <Analytics />
         <SpeedInsights />
