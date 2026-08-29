@@ -1,0 +1,841 @@
+"use client";
+import React, { useState, useRef, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, LayoutGroup, animate } from "framer-motion";
+import {
+  Zap,
+  ArrowUpRight,
+  Bell,
+  ChevronRight,
+  Loader,
+  AlertTriangle,
+  GraduationCap,
+} from "lucide-react";
+import { BentoTile } from "../BentoTile";
+import { StudentProfile, AttendanceRecord } from "@/types";
+import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
+import { Haptics } from "@/utils/shared/haptics";
+import { useApp } from "@/context/AppContext";
+import { UserAvatar } from "@/components/shared/UserAvatar";
+
+const ScoreCounter = ({ value }: any) => {
+  const nodeRef = useRef<any>(null);
+  const prevValue = useRef(0);
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+    const numericValue = parseFloat(String(value));
+    if (isNaN(numericValue)) {
+      node.textContent = value;
+      return;
+    }
+    const controls = animate(prevValue.current, numericValue, {
+      duration: 0.8,
+      ease: "circOut",
+      onUpdate: (v) => {
+        node.textContent = Math.round(v).toString();
+      },
+    });
+    prevValue.current = numericValue;
+    return () => controls.stop();
+  }, [value]);
+
+  return <span ref={nodeRef} />;
+};
+
+// ADD : any TO SILENCE VERCEL TS COMPILER
+const springTransition: any = {
+  type: "spring",
+  stiffness: 400,
+  damping: 30,
+  mass: 1,
+};
+
+// ADD : any TO SILENCE VERCEL TS COMPILER
+const accordionVariants: any = {
+  hidden: {
+    opacity: 0,
+    height: 0,
+    marginTop: 0,
+    transition: {
+      height: { duration: 0.3, ease: "easeInOut" },
+      opacity: { duration: 0.2 },
+    },
+  },
+  visible: {
+    opacity: 1,
+    height: "auto",
+    marginTop: 24,
+    transition: {
+      height: { duration: 0.3, ease: "easeInOut" },
+      opacity: { duration: 0.3, delay: 0.1 },
+    },
+  },
+  exit: {
+    opacity: 0,
+    height: 0,
+    marginTop: 0,
+    transition: {
+      height: { duration: 0.3, ease: "easeInOut" },
+      opacity: { duration: 0.15 },
+    },
+  },
+};
+
+interface HomeDashboardProps {
+  onProfileClick: () => void;
+  profile?: StudentProfile;
+  attendance?: AttendanceRecord[];
+  displayName?: string;
+  timeStatus?: {
+    nextClass: any;
+    currentClass: any;
+  };
+  upcomingAlerts?: any[];
+  calendarData?: any[];
+  overallAttendance?: number;
+  criticalAttendance?: any[];
+  overallMarks?: number;
+  recentMarks?: any[];
+  onRefresh?: () => Promise<void>;
+  isRefreshing?: boolean;
+}
+
+const HomeDashboard = ({
+  onProfileClick,
+  profile,
+  displayName,
+  timeStatus = { nextClass: null, currentClass: null },
+  upcomingAlerts: propAlerts = [],
+  calendarData = [],
+  overallAttendance = 0,
+  criticalAttendance = [],
+  overallMarks = 0,
+  recentMarks = [],
+  onRefresh,
+  isRefreshing: isParentRefreshing,
+}: HomeDashboardProps) => {
+  const { profileSeed } = useApp();
+  const router = useRouter();
+  const [isAlertExpanded, setIsAlertExpanded] = useState(false);
+  const [isMetricExpanded, setIsMetricExpanded] = useState(false);
+  const [metricMode, setMetricMode] = useState("attendance");
+
+  // State for dismissible APK banner
+  const [showApkBanner, setShowApkBanner] = useState(false);
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/classivo.apk";
+
+  useEffect(() => {
+    const isNative = typeof window !== "undefined" && !!(window as any).Capacitor;
+    const dismissed = localStorage.getItem("classivo_apk_banner_dismissed") === "true";
+    if (!isNative && !dismissed) {
+      setShowApkBanner(true);
+    }
+  }, []);
+
+  const handleDismissBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.light();
+    localStorage.setItem("classivo_apk_banner_dismissed", "true");
+    setShowApkBanner(false);
+  };
+
+  const handleDownloadApk = () => {
+    Haptics.heavy();
+    window.location.href = apkUrl;
+  };
+
+  // State for dismissible WhatsApp Group Join banner
+  const [showWaBanner, setShowWaBanner] = useState(false);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("classivo_wa_banner_dismissed") === "true";
+    if (!dismissed) {
+      setShowWaBanner(true);
+    }
+  }, []);
+
+  const handleDismissWaBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.light();
+    localStorage.setItem("classivo_wa_banner_dismissed", "true");
+    setShowWaBanner(false);
+  };
+
+  const handleJoinWaGroup = () => {
+    Haptics.heavy();
+    window.open("https://chat.whatsapp.com/KCbxvabSvRbK96h67JF3Io", "_blank", "noopener,noreferrer");
+  };
+
+  const isTargetAudience =
+    (profile?.dept || "")
+      .toLowerCase()
+      .includes("computer science and engineering") &&
+    String(profile?.semester) === "4";
+
+  const { allAlerts, currentAlertIndex } = useDashboardAlerts({ calendarData } as any, isTargetAudience);
+  
+  const upcomingAlerts = useMemo(() => {
+    const alerts = allAlerts.length > 0 ? allAlerts.map(a => ({ 
+      description: a.desc, 
+      date: a.date, 
+      type: a.type,
+      day: new Date(a.date).toLocaleDateString("en-US", { weekday: "long" })
+    })) : propAlerts;
+    return alerts;
+  }, [allAlerts, propAlerts]);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pullY, setPullY] = useState(0);
+  const [isLocalRefreshing, setIsLocalRefreshing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+  const startX = useRef(0);
+
+  const isRefreshing = isLocalRefreshing || isParentRefreshing;
+
+  const studentName =
+    displayName || (profile?.name ? profile.name.split(" ")[0] : "Student");
+
+  const nextSubject = timeStatus?.nextClass?.name || timeStatus?.nextClass?.course || timeStatus?.nextClass?.code || "no more classes";
+  const nextSubjectSplit = nextSubject.split(" ");
+  const displayNext =
+    nextSubjectSplit.length > 1
+      ? {
+          top: nextSubjectSplit
+            .slice(0, Math.ceil(nextSubjectSplit.length / 2))
+            .join(" "),
+          bottom: nextSubjectSplit
+            .slice(Math.ceil(nextSubjectSplit.length / 2))
+            .join(" "),
+        }
+      : { top: nextSubject, bottom: "" };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (containerRef.current && containerRef.current.scrollTop <= 0) {
+      startY.current = e.touches[0].clientY;
+      startX.current = e.touches[0].clientX;
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const currentX = e.touches[0].clientX;
+    const diffY = currentY - startY.current;
+    const diffX = currentX - startX.current;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) return;
+
+    if (
+      containerRef.current &&
+      containerRef.current.scrollTop <= 0 &&
+      diffY > 0 &&
+      !isRefreshing
+    ) {
+      if (diffY < 200) {
+        if (e.cancelable) e.preventDefault();
+      }
+      setPullY(Math.pow(diffY, 0.8));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (pullY > 80) {
+      setIsLocalRefreshing(true);
+      setPullY(80);
+      Haptics.heavy();
+
+      if (onRefresh) {
+        onRefresh().finally(() => {
+          setIsLocalRefreshing(false);
+          setPullY(0);
+        });
+      } else {
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
+    } else {
+      setPullY(0);
+    }
+  };
+
+  return (
+    <div className="h-full w-full bg-[#050505] relative overflow-hidden">
+      <motion.div 
+        initial={{ y: "-100%" }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute top-0 left-0 w-full h-[200px] bg-[#fdfdfd] z-0" 
+      />
+
+      <div
+        className="absolute top-0 left-0 w-full flex justify-center pt-8 z-0 transition-opacity duration-300"
+        style={{
+          opacity: Math.min(pullY / 60, 1),
+          transform: `translateY(${pullY * 0.3}px)` }}
+      >
+        <Loader
+          className="w-6 h-6 text-black/80"
+          style={{
+            animation: isRefreshing ? "spin 1s linear infinite" : "none",
+            transform: `rotate(${pullY * 2}deg)` }}
+        />
+      </div>
+
+      <div
+        ref={containerRef}
+        className="h-full w-full relative z-10 overflow-hidden overflow-x-hidden no-scrollbar flex flex-col"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <motion.div
+          animate={{ y: pullY }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="flex flex-col min-h-full"
+        >
+          <motion.div
+            layout
+            initial={{ y: "-100%", borderRadius: 0 }}
+            animate={{
+              y: 0,
+              borderRadius: "0 0 48px 48px" }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.02 }}
+            className={`bg-[#fdfdfd] flex flex-col relative overflow-hidden shrink-0 z-20 ${
+              isAlertExpanded || isMetricExpanded ? "flex-[2]" : "flex-[7]"
+            }`}
+            style={{ padding: "32px 32px 40px 32px" }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/5 pointer-events-none" />
+            <div className="flex justify-between items-center w-full relative z-20 mb-auto">
+              <motion.div
+                layout="position"
+                className="flex items-center gap-3 text-black"
+              >
+                <span
+                  className="text-xl font-black lowercase tracking-tight"
+                  
+                >
+                  classivo
+                </span>
+              </motion.div>
+            </div>
+
+            <AnimatePresence>
+              <motion.div
+                className="flex flex-col relative z-10 mt-8"
+              >
+                <motion.div                  layout="position"
+                  className="flex items-center gap-3 mb-10"
+                >
+                  <h1
+                    className="text-[24px] md:text-[28px] font-bold lowercase tracking-tight text-black/20 leading-none"
+                    
+                  >
+                    hello, <span className="text-black">{studentName}</span>
+                  </h1>
+                  <button
+                    onClick={onProfileClick}
+                    className="w-9 h-9 rounded-full overflow-hidden border-2 border-black/5 active:scale-90 transition-transform shadow-sm flex items-center justify-center bg-white"
+                  >
+                    <UserAvatar seed={profileSeed} className="w-full h-full" />
+                  </button>
+                </motion.div>
+
+                {!isAlertExpanded && !isMetricExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    className="flex flex-col"
+                  >
+                    <span
+                      className="text-[16px] md:text-[18px] font-bold lowercase tracking-tight text-black/40 leading-none"
+                      
+                    >
+                      {timeStatus?.nextClass
+                        ? "your next class is"
+                        : "you are all done"}
+                    </span>
+                    <div className="flex flex-col mt-2 w-full break-words">
+                      <span
+                        className="text-[#3233ff] truncate text-[4.5vw] md:text-[3rem] leading-[0.8] font-black tracking-tight"
+                        
+                      >
+                        {displayNext.top}
+                      </span>
+                      <span
+                        className="text-black truncate text-[8vw] md:text-[6rem] font-black tracking-tighter -mt-1 md:-mt-2"
+                        
+                      >
+                        {displayNext.bottom}
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {!isAlertExpanded && !isMetricExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    className="flex flex-wrap items-center gap-2 mt-6 md:mt-8 w-full"
+                  >
+                    <div
+                      className="bg-black text-white px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase border border-black/5 flex-shrink-0"
+                      
+                    >
+                      {timeStatus?.currentClass
+                        ? `⭐ current: ${timeStatus.currentClass.name || timeStatus.currentClass.course || timeStatus.currentClass.code || ""}${timeStatus.currentClass.type === "lab" ? " (P)" : ""}`
+                        : "☕ currently free"}
+                    </div>
+                    {timeStatus?.currentClass && (
+                      <div
+                        className="bg-black/5 px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase text-black/60 border border-black/5 flex-shrink-0"
+                        
+                      >
+                        📍 {timeStatus.currentClass.room}
+                      </div>
+                    )}
+                    {timeStatus?.nextClass && (
+                      <div
+                        className="bg-black/5 px-3 py-2 rounded-xl text-[10px] md:text-[11px] font-bold lowercase text-black/60 border border-black/5 flex-shrink-0"
+                        
+                      >
+                        ⏰ {timeStatus.nextClass.time}{timeStatus.nextClass.type === "lab" ? " (P)" : ""}
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => router.push("/timetable")}
+                      className="ml-auto w-10 h-10 bg-black rounded-full flex items-center justify-center text-white active:scale-90 transition-transform flex-shrink-0 shadow-lg"
+                    >
+                      <ArrowUpRight size={20} />
+                    </button>
+                  </motion.div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+
+          <LayoutGroup>
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springTransition}
+              className="px-1.5 w-full flex flex-col gap-10 flex-none mt-1.5 shrink-0"
+            >
+              {showApkBanner && (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={springTransition}
+                  className="mx-3 p-6 rounded-[32px] bg-[#3233ff] text-white flex items-center justify-between border-4 border-black relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-4 flex-1 pr-4 cursor-pointer" onClick={handleDownloadApk}>
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[28px] text-black">android</span>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black lowercase tracking-tight leading-none mb-1">
+                        install classivo for android
+                      </h4>
+                      <p className="text-[11px] text-white/70 font-bold leading-tight lowercase">
+                        get faster updates and offline timetable access
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDownloadApk}
+                      className="px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider bg-white text-black border-2 border-black hover:bg-white/95 active:scale-95 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      install
+                    </button>
+                    <button
+                      onClick={handleDismissBanner}
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center bg-black/10 border-2 border-black/25 text-white/80 hover:text-white active:scale-90 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {showWaBanner && (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={springTransition}
+                  className="mx-3 p-6 rounded-[32px] bg-[#128C7E] text-white flex items-center justify-between border-4 border-black relative overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <div className="flex items-center gap-4 flex-1 pr-4 cursor-pointer" onClick={handleJoinWaGroup}>
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0">
+                      <svg className="w-[26px] h-[26px] fill-black" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.66.986 3.296 1.5 5.342 1.5 5.361 0 9.724-4.364 9.728-9.728.002-2.584-1.002-5.013-2.83-6.841-1.829-1.828-4.253-2.831-6.837-2.833-5.368 0-9.733 4.362-9.737 9.729-.001 2.074.545 3.791 1.587 5.485L2.83 21.17l4.817-1.262zM17.472 14.382c-.32-.16-1.89-.933-2.185-1.041-.295-.108-.51-.16-.724.162-.213.318-.83.162-1.018.375-.187.213-.375.24-.694.08-.318-.16-1.343-.495-2.56-1.58-1.082-.966-1.748-2.222-1.959-2.581-.213-.36-.022-.554.157-.732.162-.162.36-.424.54-.636.18-.213.24-.363.36-.606.12-.24.06-.45-.03-.61-.09-.16-.724-1.745-.99-2.39-.26-.62-.52-.53-.724-.53-.188-.01-.403-.01-.617-.01-.215 0-.56.08-.853.4-.293.32-1.12 1.1-1.12 2.682 0 1.582 1.15 3.11 1.31 3.324.16.214 2.26 3.454 5.474 4.843.766.33 1.363.527 1.83.675.77.244 1.472.21 2.027.128.618-.092 1.89-.77 2.155-1.48.265-.71.265-1.317.187-1.442-.08-.124-.294-.214-.61-.375z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black lowercase tracking-tight leading-none mb-1">
+                        join classivo community
+                      </h4>
+                      <p className="text-[11px] text-white/77 font-bold leading-tight lowercase">
+                        discuss updates, share ideas, and report bugs
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleJoinWaGroup}
+                      className="px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider bg-white text-black border-2 border-black hover:bg-white/95 active:scale-95 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      join
+                    </button>
+                    <button
+                      onClick={handleDismissWaBanner}
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center bg-black/10 border-2 border-black/25 text-white/80 hover:text-white active:scale-90 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              <BentoTile
+                as={motion.div}
+                layout
+                transition={springTransition}
+                onClick={() => {
+                  setIsAlertExpanded(!isAlertExpanded);
+                  if (isMetricExpanded) setIsMetricExpanded(false);
+                }}
+                className={`bg-[#ff003c] !px-8 flex flex-col text-white rounded-[32px] cursor-pointer overflow-hidden ${
+                  isAlertExpanded ? "h-[250px]" : "h-[75px]"
+                }`}
+              >
+                <motion.div
+                  layout="position"
+                  className="flex justify-between items-center w-full relative z-10 py-0 -mt-2.5"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Bell size={20} className="shrink-0 -mt-0.5" />
+                    <div className="flex flex-col min-w-0 -mt-1">
+                      <p
+                        className="font-bold text-xl md:text-2xl tracking-normal lowercase shrink-0 leading-tight"
+                        
+                      >
+                        academic alerts
+                      </p>
+                      {!isAlertExpanded && (
+                        <div className="h-4 overflow-hidden">
+                          <AnimatePresence mode="wait">
+                            <motion.p
+                              key={currentAlertIndex}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="text-[11px] font-bold text-white/40 lowercase truncate"
+                              
+                            >
+                              {allAlerts[currentAlertIndex] 
+                                ? `${allAlerts[currentAlertIndex].title.toLowerCase()}: ${allAlerts[currentAlertIndex].desc.toLowerCase().split(" / ")[0]}`
+                                : overallAttendance < 75 ? "attendance low" : "all good"
+                              }
+                            </motion.p>
+                          </AnimatePresence>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center shrink-0 -mt-1">
+                    <ChevronRight
+                      size={16}
+                      className={`transition-transform duration-500 ${
+                        isAlertExpanded ? "rotate-90" : ""
+                      }`}
+                    />
+                  </div>
+                </motion.div>
+                <AnimatePresence>
+                  {isAlertExpanded && (
+                    <motion.div
+                      key="alerts-content"
+                      variants={accordionVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="w-full relative z-10"
+                    >
+                      {upcomingAlerts.length > 0 ? (
+                        upcomingAlerts.slice(0, 2).map((alert, i) => (
+                          <div
+                            key={i}
+                            className="bg-white p-3 rounded-xl flex flex-col gap-1 border border-black/5 shadow-sm mb-2 last:mb-0"
+                          >
+                            <div className="flex justify-between items-start">
+                              <span
+                                className="text-[12px] font-bold leading-tight text-black line-clamp-2"
+                                
+                              >
+                                {alert.description}
+                              </span>
+                              {alert.type === "exam" && (
+                                <span className="bg-[#ff003c] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md ml-2 flex-shrink-0">
+                                  EXAM
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className="text-[10px] font-bold text-black/40 uppercase tracking-wide"
+                              
+                            >
+                              {alert.date} • {alert.day}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div
+                          className="bg-black/20 p-4 rounded-2xl font-bold text-[11px] lowercase text-white tracking-normal"
+                          
+                        >
+                          no upcoming exams
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </BentoTile>
+
+              <BentoTile
+                as={motion.div}
+                layout
+                transition={springTransition}
+                onClick={() => {
+                  setIsMetricExpanded(!isMetricExpanded);
+                  if (isAlertExpanded) setIsAlertExpanded(false);
+                }}
+                className={`bg-[#ceff1c] flex-1 flex flex-col relative -top-8 rounded-t-[48px] !px-5 !pb-[60vh] -mb-[40vh] overflow-hidden cursor-pointer ${
+                  isMetricExpanded
+                    ? "min-h-[400px]"
+                    : "min-h-[220px] md:min-h-[250px]"
+                }`}
+              >
+                <motion.div
+                  layout="position"
+                  className="flex justify-between items-start w-full z-10 pt-0 shrink-0"
+                >
+                  <div className="w-11 h-11 bg-black rounded-full flex items-center justify-center shadow-xl">
+                    {metricMode === "attendance" ? (
+                      <Zap
+                        size={20}
+                        className="text-[#ceff1c]"
+                        fill="currentColor"
+                      />
+                    ) : (
+                      <GraduationCap
+                        size={20}
+                        className="text-[#ceff1c]"
+                        fill="currentColor"
+                      />
+                    )}
+                  </div>
+                  <div
+                    className="bg-black/90 backdrop-blur-xl text-white p-1 rounded-full flex items-center text-[9px] md:text-[10px] font-bold uppercase tracking-[0.1em]"
+                    
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      onClick={() => setMetricMode("attendance")}
+                      className={`px-4 py-2 rounded-full cursor-pointer transition-colors ${
+                        metricMode === "attendance"
+                          ? "bg-[#ceff1c] text-black shadow-sm"
+                          : "text-white/40 hover:text-white"
+                      }`}
+                    >
+                      attendance
+                    </div>
+                    <div
+                      onClick={() => setMetricMode("marks")}
+                      className={`px-4 py-2 rounded-full cursor-pointer transition-colors ${
+                        metricMode === "marks"
+                          ? "bg-[#ceff1c] text-black shadow-sm"
+                          : "text-white/40 hover:text-white"
+                      }`}
+                    >
+                      marks
+                    </div>
+                  </div>
+                </motion.div>
+                <div className="flex flex-col w-full relative h-full">
+                  <AnimatePresence mode="wait">
+                    {isMetricExpanded ? (
+                      <motion.div
+                        key="expanded"
+                        variants={accordionVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="w-full flex flex-col gap-3"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span
+                            className="text-[14px] font-bold text-black/40 lowercase"
+                            
+                          >
+                            {metricMode === "attendance"
+                              ? "needs attention"
+                              : "academic status"}
+                          </span>
+                          <div className="h-[1px] flex-1 bg-black/10 ml-4"></div>
+                        </div>
+                        {metricMode === "attendance" ? (
+                          criticalAttendance.length > 0 ? (
+                            criticalAttendance.map((subj, i) => (
+                              <div
+                                key={i}
+                                className="bg-black/10 p-4 rounded-2xl flex items-center justify-between w-full"
+                              >
+                                <div className="flex flex-col w-[60%]">
+                                  {subj.isPractical && (
+                                    <span className="text-[8px] font-black text-[#3233ff] uppercase tracking-widest mb-1">
+                                      practical
+                                    </span>
+                                  )}
+                                  <span
+                                    className="font-bold text-[13px] text-black leading-tight truncate"
+                                    
+                                  >
+                                    {subj.displayName}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <div className="flex items-center gap-1 text-[#ff003c]">
+                                    <AlertTriangle size={14} />
+                                    <span
+                                      className="font-black text-[14px] lowercase"
+                                      
+                                    >
+                                      {subj.required} required
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="bg-black/5 p-4 rounded-2xl text-center w-full">
+                              <span
+                                className="font-bold text-[12px] text-black/60"
+                                
+                              >
+                                attendance is safe
+                              </span>
+                            </div>
+                          )
+                        ) : (
+                          recentMarks.length > 0 ? (
+                            recentMarks.slice(0, 2).map((mark: any, i: number) => (
+                              <div
+                                key={i}
+                                className="bg-black/10 p-4 rounded-2xl flex items-center justify-between w-full"
+                              >
+                                <div className="flex flex-col w-[70%]">
+                                  <span className="text-[8px] font-black text-[#3233ff] uppercase tracking-widest mb-1">
+                                    {mark.testName}
+                                  </span>
+                                  <span
+                                    className="font-bold text-[13px] text-black leading-tight truncate"
+                                    
+                                  >
+                                    {mark.title}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <div className="flex items-baseline gap-1">
+                                    <span
+                                      className="font-black text-[18px] text-black"
+                                      
+                                    >
+                                      {mark.score}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-black/40">/{mark.max}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="bg-black/5 p-4 rounded-2xl text-center w-full">
+                              <span
+                                className="font-bold text-[12px] text-black/60"
+                                
+                              >
+                                no marks data available
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="collapsed"
+                        variants={accordionVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="flex justify-between items-end w-full absolute -bottom-22 left-0"
+                      >
+                        <div>
+                          <p
+                            className="text-[10px] font-bold uppercase text-black/30 tracking-widest mb-1"
+                            
+                          >
+                            {metricMode === "attendance"
+                              ? "overall"
+                              : "average"}
+                          </p>
+                          <h2
+                            className="text-[28px] md:text-[34px] font-bold leading-[0.95] text-black tracking-normal lowercase"
+                            
+                          >
+                            {metricMode === "attendance" ? (
+                              <>
+                                you are <br /> doing well
+                              </>
+                            ) : (
+                              <>
+                                academic <br /> performance
+                              </>
+                            )}
+                          </h2>
+                        </div>
+                        <div
+                          className="text-[80px] md:text-[88px] font-black leading-[0.7] tracking-[-0.04em] text-black"
+                          
+                        >
+                          <ScoreCounter value={metricMode === "attendance" ? overallAttendance : overallMarks} />
+                          <span className="text-[34px] opacity-20 tracking-normal">
+                            %
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </BentoTile>
+            </motion.div>
+          </LayoutGroup>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default HomeDashboard;

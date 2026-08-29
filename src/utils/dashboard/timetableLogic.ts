@@ -1,0 +1,193 @@
+export const parseTimetableTime = (str: string) => {
+  if (!str) return 0;
+  // Handles "09:45", "09:45 - 10:40", "09:45 AM - 10:40 AM", "9:45am" etc.
+  const m = String(str).match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (!m) return 0;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const mer = (m[3] || "").toLowerCase();
+  if (mer === "pm" && h !== 12) h += 12;
+  else if (mer === "am" && h === 12) h = 0;
+  else if (!mer && h < 8) h += 12; // ambiguous 12h-style, assume PM
+  return h * 60 + min;
+};
+
+export const getAcronym = (name: string) => {
+  if (!name) return "";
+  const lower = name.toLowerCase().trim();
+  if (lower.includes("database")) return "dbms";
+  if (lower.includes("object oriented") || lower.includes("oops"))
+    return "oops";
+  if (
+    lower.includes("data structure") ||
+    lower.includes("dsa") ||
+    lower.includes("daa")
+  )
+    return "dsa";
+  if (lower.includes("machine learning")) return "ml";
+  if (lower.includes("operating system")) return "os";
+  if (lower.includes("artificial intelligence")) return "ai";
+  if (lower.includes("internet of things")) return "iot";
+  if (lower.includes("design thinking")) return "dtm";
+  if (lower.includes("probability") && lower.includes("statistics")) return "p&s";
+  if (lower.includes("discrete") && lower.includes("mathematics")) return "dm";
+  if (lower.length <= 4) return lower;
+
+  const skipWords = ["and", "of", "to", "in", "for", "with", "a", "an", "the"];
+  const parts = lower.split(/\s+/).filter((w) => !skipWords.includes(w));
+  
+  if (parts.length === 1) {
+    return parts[0].length <= 5 ? parts[0] : parts[0].substring(0, 4);
+  }
+
+  const acronym = parts.map((w) => w[0]).join("");
+  return acronym.length <= 5 ? acronym : acronym.substring(0, 5);
+};
+
+export const buildCourseMap = (data: any) => {
+  const map: any = {};
+  
+  // 1. Populate from courses object
+  if (data?.courses) {
+    Object.values(data.courses).forEach((course: any) => {
+      if (course && typeof course === 'object') {
+        const code = course.code || course.courseCode;
+        const name = course.name || course.courseTitle || course.title;
+        if (code && name) {
+          map[code.trim()] = name.trim();
+        }
+      }
+    });
+  }
+  
+  // 2. Populate from schedule/timetable
+  const schedules = [data?.effectiveSchedule, data?.timetable, data?.schedule, data?.time_table].filter(Boolean);
+  schedules.forEach((sched: any) => {
+    if (typeof sched === 'object') {
+      Object.values(sched).forEach((daySchedule: any) => {
+        if (daySchedule && typeof daySchedule === 'object') {
+          Object.values(daySchedule).forEach((slot: any) => {
+            if (slot && typeof slot === 'object') {
+              const code = slot.courseCode || slot.course || slot.code;
+              const name = slot.courseTitle || slot.name || slot.title || slot.course;
+              if (code && name && name !== code) {
+                const cleanCode = code.split("-")[0].trim();
+                map[cleanCode] = name.trim();
+              }
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // 3. Populate from attendance
+  if (data?.attendance) {
+    data.attendance.forEach((sub: any) => {
+      const code = sub.code || sub.courseCode;
+      const name = sub.course || sub.displayName || sub.title;
+      if (code && name) {
+        map[code.trim()] = name.trim();
+      }
+    });
+  }
+  
+  return map;
+};
+
+export const processSchedule = (
+  schedule: any,
+  _unusedCustomClasses: any,
+  activeDay: number,
+  dayOrder: number,
+  courseMap: any,
+) => {
+  const dayClasses = schedule[`Day ${activeDay}`]
+    ? Object.values(schedule[`Day ${activeDay}`])
+    : [];
+
+  const combined = dayClasses.filter((c: any) => c && c.time);
+
+  const rawItems = combined
+    .map((details: any, idx: number) => {
+      const timeStr = details.time || "";
+      const [startStr, endStr] = timeStr.includes(" - ") ? timeStr.split(" - ") : [timeStr, timeStr];
+      const code =
+        details.courseCode || details.course || details.code || "N/A";
+      const cleanCode = code.split("-")[0].trim();
+      const fullName =
+        courseMap[cleanCode] ||
+        details.courseTitle ||
+        details.name ||
+        details.course ||
+        "Unknown Subject";
+
+      const isLab =
+        details.slot?.toUpperCase().includes("P") ||
+        details.type?.toLowerCase() === "lab" ||
+        details.type?.toLowerCase() === "practical";
+
+      return {
+        id: details.id || `sch-${activeDay}-${idx}-${cleanCode}`,
+        code: getAcronym(fullName) || cleanCode,
+        courseCode: cleanCode,
+        name: fullName.toLowerCase(),
+        time: details.time,
+        start: startStr,
+        end: endStr,
+        minutesStart: parseTimetableTime(startStr),
+        minutesEnd: parseTimetableTime(endStr),
+        room: details.room || "TBA",
+        faculty: details.faculty || "TBA",
+        type: isLab ? "lab" : "theory",
+        slot: details.slot,
+        isCustom: details.isCustom || false,
+      };
+    })
+    .sort((a, b) => a.minutesStart - b.minutesStart);
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const isToday = dayOrder === activeDay;
+
+  const finalWithBreaks: any[] = [];
+
+  for (let i = 0; i < rawItems.length; i++) {
+    finalWithBreaks.push(rawItems[i]);
+    if (i < rawItems.length - 1) {
+      const current = rawItems[i];
+      const next = rawItems[i + 1];
+      if (next.minutesStart > current.minutesEnd) {
+        const gapDuration = next.minutesStart - current.minutesEnd;
+        let breakTitle = "short break";
+        if (gapDuration >= 40) breakTitle = "lunch break";
+
+        finalWithBreaks.push({
+          id: `break-${activeDay}-${current.end}-${next.start}`,
+          type: "break",
+          title: breakTitle,
+          time: `${current.end} - ${next.start}`,
+        });
+      }
+    }
+  }
+
+  return finalWithBreaks.map((item) => {
+    if (item.type === "break") return item;
+    return {
+      ...item,
+      isCurrent:
+        isToday &&
+        nowMinutes >= item.minutesStart &&
+        nowMinutes < item.minutesEnd,
+    };
+  });
+};
+
+export const getDayOverview = (dayClasses: any[]) => {
+  const regularClasses = dayClasses.filter((c) => c.type !== "break");
+  if (regularClasses.length === 0) return { start: "--", end: "--", count: 0 };
+  const start = regularClasses[0].start;
+  const end = regularClasses[regularClasses.length - 1].end;
+  return { start, end, count: regularClasses.length };
+};
