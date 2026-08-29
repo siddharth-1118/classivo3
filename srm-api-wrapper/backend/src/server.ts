@@ -534,6 +534,65 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       // Cache the dashboard HTML for navigation
       session.dashboardHtml = result.html;
 
+      // Fetch the profile immediately during login to prevent frontend redirect loops due to missing profile
+      let profile: Record<string, string | null> | null = null;
+      try {
+        console.log(`[AUTH LOGIN] Fetching student profile for session ${sessionId}...`);
+        const personalDetailsHtml = await navigateToSrmSection(session, 17, 'Personal Details');
+        const $ = cheerio.load(personalDetailsHtml);
+        const data: Record<string, string> = {};
+
+        $('tr').each((_, trEl) => {
+          const tds = $(trEl).find('td');
+          if (tds.length >= 2) {
+            const label = tds.eq(0).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
+            const value = tds.eq(1).text().trim().replace(/\s+/g, ' ');
+            if (label && value && label.length < 60) {
+              data[label] = value;
+            }
+          }
+        });
+
+        $('dl').each((_, dl) => {
+          const dts = $(dl).find('dt');
+          const dds = $(dl).find('dd');
+          dts.each((i, dt) => {
+            const label = $(dt).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
+            const value = $(dds.eq(i)).text().trim().replace(/\s+/g, ' ');
+            if (label) data[label] = value;
+          });
+        });
+
+        const fieldMap: Record<string, string[]> = {
+          name: ['Student Name', 'Name', 'Full Name'],
+          studentId: ['Student Id', 'Student ID', 'NetID'],
+          registerNumber: ['Register Number', 'Reg No', 'Registration No'],
+          email: ['Email', 'Email Id'],
+          program: ['Program', 'Programme', 'Course'],
+          semester: ['Semester', 'Sem'],
+          batch: ['Batch', 'Year'],
+          section: ['Section'],
+        };
+
+        const extractedProfile: Record<string, string | null> = {};
+        for (const [normalized, variants] of Object.entries(fieldMap)) {
+          for (const variant of variants) {
+            const match = Object.entries(data).find(([k]) =>
+              k.toLowerCase().includes(variant.toLowerCase())
+            );
+            if (match) {
+              extractedProfile[normalized] = match[1];
+              break;
+            }
+          }
+          if (!extractedProfile[normalized]) extractedProfile[normalized] = null;
+        }
+        profile = extractedProfile;
+        console.log(`[AUTH LOGIN] Profile successfully fetched for student: ${profile.name}`);
+      } catch (err) {
+        console.error('[AUTH LOGIN] Failed to fetch profile during login:', err);
+      }
+
       const authMinutes = process.env.SESSION_TIMEOUT_MINUTES
         ? parseInt(process.env.SESSION_TIMEOUT_MINUTES, 10) : 20;
       const expiresAt = new Date(Date.now() + authMinutes * 60 * 1000).toISOString();
@@ -555,6 +614,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         success: true,
         authenticated: true,
         sessionId: session.sessionId,
+        profile: profile,
         message: 'Login successful'
       });
     } else {
