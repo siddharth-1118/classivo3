@@ -58,7 +58,7 @@ export default function Dashboard({
 
   // State for dismissible APK banner
   const [showApkBanner, setShowApkBanner] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/classivo.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://satisfaction-washington-mini-impressive.trycloudflare.com/classivo.apk";
 
   useEffect(() => {
     const isNative = typeof window !== "undefined" && !!(window as any).Capacitor;

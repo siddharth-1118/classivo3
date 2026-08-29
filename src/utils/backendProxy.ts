@@ -1,6 +1,6 @@
 export async function fetchWithLoadBalancer(endpoint: string, options: RequestInit = {}) {
-  // Read from env variable; fall back to the Render backend if not set
-  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URLS || "https://classivo3.onrender.com";
+  // Read from env variable; fall back to the Cloudflare tunnel backend if not set
+  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URLS || "https://satisfaction-washington-mini-impressive.trycloudflare.com";
   const urls = envUrl.split(",").map((u) => u.trim()).filter(Boolean);
 
   const shuffledUrls = [...urls].sort(() => Math.random() - 0.5);

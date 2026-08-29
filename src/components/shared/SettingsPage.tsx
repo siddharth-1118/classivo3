@@ -65,7 +65,7 @@ export default function SettingsPage({
   const [showApkModal, setShowApkModal] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://classivo3.onrender.com/classivo.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://satisfaction-washington-mini-impressive.trycloudflare.com/classivo.apk";
 
   // Diagnostic states
   const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");
