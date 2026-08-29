@@ -527,7 +527,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                           placeholder="Verification Code" 
                           type="text"
                           value={captchaInput}
-                          onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                          onChange={(e) => setCaptchaInput(e.target.value)}
                           required
                         />
                       </div>
