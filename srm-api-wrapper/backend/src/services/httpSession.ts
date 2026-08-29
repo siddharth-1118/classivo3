@@ -94,6 +94,7 @@ export async function fetchLoginPage(client: AxiosInstance): Promise<{
   randomDelimiter: string;
   challengeId: string;
   captchaUrl: string;
+  nonce: string;
 }> {
   console.log('[HTTP SESSION] Fetching login page...');
   const response = await client.get(LOGIN_PAGE_URL.replace(BASE_URL, ''), {
@@ -125,6 +126,10 @@ export async function fetchLoginPage(client: AxiosInstance): Promise<{
   const challengeMatch = html.match(/id="challengeId"\s+value="([^"]+)"/);
   const challengeId = challengeMatch ? challengeMatch[1] : '';
 
+  // Extract Nonce for X-Domain-Proof
+  const nonceMatch = html.match(/nonce\s*:\s*['"]([^'"]+)['"]/);
+  const nonce = nonceMatch ? nonceMatch[1] : '';
+
   // Extract CAPTCHA URL from data-src attribute
   const captchaImg = $('img#secure_captcha');
   const dataSrc = captchaImg.attr('data-src') || '';
@@ -132,7 +137,7 @@ export async function fetchLoginPage(client: AxiosInstance): Promise<{
     ? dataSrc.replace(/&amp;/g, '&')
     : `${CAPTCHA_SERVLET_URL}?ts=${Date.now()}`;
 
-  console.log(`[HTTP SESSION] Login page fetched. captchaField=${captchaFieldName}, domainField=${domainFieldName}`);
+  console.log(`[HTTP SESSION] Login page fetched. captchaField=${captchaFieldName}, domainField=${domainFieldName}, nonce=${nonce}`);
   console.log(`[HTTP SESSION] CAPTCHA URL: ${captchaUrl}`);
 
   return {
@@ -142,6 +147,7 @@ export async function fetchLoginPage(client: AxiosInstance): Promise<{
     randomDelimiter,
     challengeId,
     captchaUrl,
+    nonce,
   };
 }
 
@@ -151,10 +157,13 @@ export async function fetchLoginPage(client: AxiosInstance): Promise<{
  */
 export async function fetchCaptchaImage(
   client: AxiosInstance,
-  captchaUrl: string
+  captchaUrl: string,
+  nonce: string
 ): Promise<string> {
-  console.log('[HTTP CAPTCHA] Fetching CAPTCHA image...');
+  console.log('[HTTP CAPTCHA] Fetching CAPTCHA image with X-Domain-Proof...');
   console.log('[HTTP CAPTCHA] Original URL:', captchaUrl);
+
+  const domainProof = Buffer.from(`${nonce}:sp.srmist.edu.in`).toString('base64');
 
   // The CAPTCHA URL is already relative (e.g., /srmiststudentportal/SCaptchaServlet?ts=...)
   // Just use it directly with the client (baseURL is BASE_URL)
@@ -163,6 +172,7 @@ export async function fetchCaptchaImage(
     headers: {
       'Referer': '/srmiststudentportal/students/loginManager/youLogin.jsp',
       'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+      'X-Domain-Proof': domainProof,
     },
   });
 
@@ -185,30 +195,37 @@ export async function fetchCaptchaImage(
  * Generates a spoofed telemetry payload compatible with SRM's secure2.js.
  * This replaces the browser-based telemetry injection.
  */
-function generateTelemetryPayload(): string {
-  const mockData = {
-    E: 'sp.srmist.edu.in',
-    D: -330, // IST timezone offset
-    C: 24,
-    B: 24,
-    '1o': 1.25,
-    '1n': 1,
-    '1m': 'Win32',
-    '1l': USER_AGENT,
-    '1k': 'en-US',
-    '1j': 8,
-    '1i': 8,
-    '2h': false,
-    v: false, // webdriver: false
-    z: 3 + Math.floor(Math.random() * 4),
-    y: 150 + Math.floor(Math.random() * 100),
-    x: 25 + Math.floor(Math.random() * 15),
-    w: 5000 + Math.floor(Math.random() * 3000),
-    u: 'f60f2f2',
+function generateTelemetryPayload(captchaLength: number = 6): string {
+  const now = Date.now();
+  const timeOnPageMs = Math.floor(Math.random() * 3000) + 3000; // 3-6 seconds
+  const startTime = now - timeOnPageMs;
+  
+  const telemetry = {
+    startTime: startTime,
+    currentDomain: 'sp.srmist.edu.in',
+    timezoneOffset: -330,
+    screenWidth: 1920,
+    screenHeight: 1080,
+    colorDepth: 24,
+    devicePixelRatio: 1,
+    platform: 'Win32',
+    userAgent: USER_AGENT,
+    language: 'en-US',
+    hardwareConcurrency: 8,
+    deviceMemory: 8,
+    touchSupport: false,
+    webdriver: false,
+    mouseClicks: Math.floor(Math.random() * 3) + 1,
+    mouseMovements: Math.floor(Math.random() * 40) + 20,
+    keystrokeCount: captchaLength + 15, // netId + captcha + tab keys
+    typingSpeedMs: Math.floor(Math.random() * 1500) + 1500,
+    canvasHash: (Math.floor(Math.random() * 10000000) - 5000000).toString(),
+    timeOnPageMs: timeOnPageMs,
+    submitTime: now
   };
 
   try {
-    const str = JSON.stringify(mockData);
+    const str = JSON.stringify(telemetry);
     return Buffer.from(str).toString('base64');
   } catch {
     return '';
@@ -288,15 +305,12 @@ export async function submitLoginHttp(
     formData.append(honeypotFieldName, '');
   }
 
-  // Fingerprint fields
-  formData.append('fpPayload', generateFingerprintPayload());
-  formData.append('fpToken', generateFingerprintToken());
-
-  // Challenge ID
-  formData.append('challengeId', challengeId);
+  // Fingerprint fields (empty in browser submission)
+  formData.append('fpPayload', '');
+  formData.append('fpToken', '');
 
   // Telemetry payload
-  formData.append('telemetryPayload', generateTelemetryPayload());
+  formData.append('telemetryPayload', generateTelemetryPayload(captcha.length));
 
   console.log('[HTTP AUTH] Submitting login form...');
 

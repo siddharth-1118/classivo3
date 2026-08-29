@@ -71,6 +71,7 @@ interface HttpSRMSession {
   randomDelimiter?: string;
   challengeId?: string;
   captchaUrl?: string;
+  nonce?: string;
   // Cached dashboard HTML (for navigation)
   dashboardHtml?: string;
   // Profile metadata
@@ -380,10 +381,11 @@ app.post('/api/auth/start', async (req: Request, res: Response) => {
     session.randomDelimiter = loginPage.randomDelimiter;
     session.challengeId = loginPage.challengeId;
     session.captchaUrl = loginPage.captchaUrl;
+    session.nonce = loginPage.nonce;
     session.captchaGeneratedAt = Date.now();
 
     // Fetch CAPTCHA image using the same session
-    const captchaBase64 = await fetchCaptchaImage(client, loginPage.captchaUrl);
+    const captchaBase64 = await fetchCaptchaImage(client, loginPage.captchaUrl, loginPage.nonce);
 
     // Create session in Supabase
     const unauthMinutes = process.env.UNAUTHENTICATED_SESSION_TIMEOUT_MINUTES
@@ -442,11 +444,12 @@ app.post('/api/auth/captcha/refresh', requireAuth, async (req: AuthenticatedRequ
     session.randomDelimiter = loginPage.randomDelimiter;
     session.challengeId = loginPage.challengeId;
     session.captchaUrl = loginPage.captchaUrl;
+    session.nonce = loginPage.nonce;
     session.captchaGeneratedAt = Date.now();
     session.loginPageHtml = loginPage.html;
 
     // Fetch new CAPTCHA image
-    const captchaBase64 = await fetchCaptchaImage(session.client, loginPage.captchaUrl);
+    const captchaBase64 = await fetchCaptchaImage(session.client, loginPage.captchaUrl, loginPage.nonce);
 
     return res.json({
       success: true,
