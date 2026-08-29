@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: srm-companion
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: FRONTEND_URL
+        value: https://classivo-1.vercel.app
+      - key: SRM_LOGIN_URL
+        value: https://sp.srmist.edu.in/srmiststudentportal/students/loginManager/youLogin.jsp
+      - key: SESSION_TIMEOUT_MINUTES
+        value: 20
