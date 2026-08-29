@@ -1,7 +1,7 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://satisfaction-washington-mini-impressive.trycloudflare.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev";
 
 /**
  * Sync a user's timetable and attendance to the server so the cron job can

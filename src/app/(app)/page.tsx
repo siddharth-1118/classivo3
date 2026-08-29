@@ -170,7 +170,7 @@ function LandingPage() {
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
             <a
-              href="https://satisfaction-washington-mini-impressive.trycloudflare.com/classivo.apk"
+              href="https://nancey-pandemoniacal-candra.ngrok-free.dev/classivo.apk"
               download="classivo.apk"
               className="group px-8 py-4 rounded-2xl text-[14px] font-black uppercase tracking-widest btn-ghost flex items-center justify-center gap-2"
             >
@@ -293,7 +293,7 @@ function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center relative z-10">
               <a
-                href="https://satisfaction-washington-mini-impressive.trycloudflare.com/classivo.apk"
+                href="https://nancey-pandemoniacal-candra.ngrok-free.dev/classivo.apk"
                 download="classivo.apk"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-[13px] uppercase tracking-widest btn-aurora active:scale-[0.98]"
               >
