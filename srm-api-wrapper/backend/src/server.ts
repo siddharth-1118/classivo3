@@ -592,7 +592,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
           session.captchaUrl = loginPage.captchaUrl;
           session.captchaGeneratedAt = Date.now();
           session.loginPageHtml = loginPage.html;
-          const captchaBase64 = await fetchCaptchaImage(session.client, loginPage.captchaUrl);
+          const captchaBase64 = await fetchCaptchaImage(session.client, loginPage.captchaUrl, loginPage.nonce);
 
           captchaResponseFields = {
             captcha_required: true,
