@@ -61,14 +61,14 @@ export default function MaintenancePage() {
 
         {/* Footer note */}
         <p className="footer-note">
-          Need urgent help? Reach out on{" "}
+          Stay updated via our{" "}
           <a
-            href="https://instagram.com"
+            href="https://chat.whatsapp.com/FGlGxJDL413LFjp55wMJUr"
             target="_blank"
             rel="noopener noreferrer"
             className="link"
           >
-            Instagram
+            WhatsApp Community
           </a>
         </p>
       </main>
