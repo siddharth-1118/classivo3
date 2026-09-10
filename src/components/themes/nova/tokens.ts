@@ -1,27 +1,27 @@
-// Nova v2 — "Carbon" design tokens
-// Dark neon "terminal" palette per the v2 spec
+// Nova v2 — "Carbon Glass" design tokens
 export const NOVA = {
-  bg: "#0C0C0C", // deep charcoal
-  panel: "#141414", // panel
-  panel2: "#1B1B1B", // panel deep
-  border: "#262626", // hairline
-  borderStrong: "#3A3A3A",
-  text: "#F4F4F4", // near-white
-  muted: "#9B9B9B",
-  faint: "#5F5F5F",
-  ink: "#050505", // near-black for text on bright fills
+  bg: "#0A0D14", // obsidian navy-charcoal
+  panel: "rgba(18, 24, 38, 0.75)", // glass panel
+  panelSolid: "#121826",
+  panel2: "#182032", // deep container
+  border: "rgba(255, 255, 255, 0.08)", // subtle glass border
+  borderStrong: "rgba(255, 255, 255, 0.16)",
+  text: "#F8FAFC", // crisp off-white
+  muted: "#94A3B8", // slate muted
+  faint: "#64748B", // slate faint
+  ink: "#050505", // text on bright fills
   lime: "#A8FF00", // neon green
   orange: "#FF7800",
-  blue: "#00A6FF",
-  green: "#A8FF00",
-  red: "#FF4D4D",
-  gold: "#FFD166",
-  pink: "#FF5EC8",
-  purple: "#A800FF",
-  cyan: "#00E5FF",
-  teal: "#00C9A7",
-  amber: "#FFB84D",
-  indigo: "#7C6CFF",
+  blue: "#38BDF8", // sky cyan
+  green: "#22C55E",
+  red: "#F43F5E",
+  gold: "#FACC15",
+  pink: "#EC4899",
+  purple: "#A855F7",
+  cyan: "#06B6D4",
+  teal: "#14B8A6",
+  amber: "#F59E0B",
+  indigo: "#6366F1",
 } as const;
 
 export const FONT_MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
@@ -29,6 +29,16 @@ export const FONT_SANS = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI'
 
 export function mono(extra = "") {
   return { fontFamily: `${FONT_MONO}${extra ? "," + extra : ""}` };
+}
+
+export function glassCard(glowColor = NOVA.blue, borderAlpha = "26") {
+  return {
+    background: NOVA.panel,
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: `1px solid ${NOVA.border}`,
+    boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px 0 ${glowColor}${borderAlpha}`,
+  };
 }
 
 // Capitalize the first letter of a string (sentence case)
