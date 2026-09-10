@@ -268,8 +268,8 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
 
       if (payload.success) {
         EncryptionUtils.saveEncrypted("classivo_credentials", { username: portalRegNo.trim(), password: portalPassword });
-        setConnectionSource("academia");
-        localStorage.setItem("classivo_connection_source", "academia");
+        setConnectionSource("srm_portal");
+        localStorage.setItem("classivo_connection_source", "srm_portal");
         const srmSchedule = payload.schedule || {};
         const academiaSchedule = yearPromptData?.schedule || {};
         const hasSRMTimetable = srmSchedule && typeof srmSchedule === "object" && Object.keys(srmSchedule).length > 0;
@@ -281,7 +281,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
           timetable: hasSRMTimetable ? (payload.timetable || srmSchedule) : (yearPromptData?.timetable || academiaSchedule),
           schedule: hasSRMTimetable ? srmSchedule : academiaSchedule,
           portalConnected: true,
-          source: "academia",
+          source: "srm_portal",
         };
         onLogin(mergedData);
         return;

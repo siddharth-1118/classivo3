@@ -513,7 +513,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsBackendError(false);
     setBackendErrorMsg(null);
     try {
-      const source = localStorage.getItem("classivo_connection_source") || "srm_portal";
+      const source = localStorage.getItem("classivo_connection_source") || ((existingData as any)?.portalConnected ? "srm_portal" : "academia");
       const endpoint = source === "srm_portal" ? "/portal/sync" : "/refresh";
       const savedCookies = EncryptionUtils.loadDecrypted("academia_cookies");
       const savedCreds = EncryptionUtils.loadDecrypted("classivo_credentials") || {};
