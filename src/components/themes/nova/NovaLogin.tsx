@@ -195,7 +195,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
       const result = await data.json();
       if (result.success && result.connectionId) {
         setPortalConnectionId(result.connectionId);
-        setPortalCaptchaImage(result.captchaImage || null);
+        setPortalCaptchaImage(result.captchaImage || result.captcha_image || result.captcha || null);
         setPortalConnectError("");
       } else {
         setPortalConnectError(result.message || "Unable to load the verification image.");
@@ -218,7 +218,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
       });
       const result = await data.json();
       if (result.success) {
-        setPortalCaptchaImage(result.captchaImage || null);
+        setPortalCaptchaImage(result.captchaImage || result.captcha_image || result.captcha || null);
         setPortalCaptchaInput("");
         setPortalConnectError("");
       } else {

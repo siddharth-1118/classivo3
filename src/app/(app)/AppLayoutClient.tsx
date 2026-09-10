@@ -15,7 +15,7 @@ import NovaShell from "@/components/themes/nova/NovaShell";
 import { AppLayoutContext } from "@/context/AppLayoutContext";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { userData, logout, customDisplayName, setCustomDisplayName, isUpdating, setIsUpdateHistoryOpen, isInitialized, refreshData } = useApp();
+  const { userData, setUserData, logout, customDisplayName, setCustomDisplayName, isUpdating, setIsUpdateHistoryOpen, isInitialized, refreshData } = useApp();
   const { theme, setTheme, uiStyle, isDark } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSwipeDisabled, setIsSwipeDisabled] = useState(false);
@@ -39,12 +39,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const hasCreds = localStorage.getItem("classivo_credentials");
 
       if (hasData && userData && !userData.profile) {
-        console.warn("Corrupted user data detected. Redirecting to login...");
-        localStorage.removeItem("classivo_data");
-        localStorage.removeItem("classivo_credentials");
-        setIsRedirecting(true);
-        router.replace("/login");
-        return true;
+        const uData = userData as any;
+        const fallbackProfile = {
+          name: uData?.name || uData?.netId || uData?.registrationNumber || "Student",
+          registrationNumber: uData?.registrationNumber || uData?.registerNumber || uData?.netId || "",
+          email: uData?.email || (uData?.netId ? `${uData.netId}@srmist.edu.in` : ""),
+        };
+        const repaired = { ...userData, profile: fallbackProfile };
+        setUserData(repaired);
+        localStorage.setItem("classivo_data", JSON.stringify(repaired));
       }
 
       if (!userData && !hasData && !hasCreds) {
@@ -61,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!redirected) {
       setIsRedirecting(false);
     }
-  }, [router, userData, isInitialized, isAdminRoute, pathname]);
+  }, [router, userData, isInitialized, isAdminRoute, pathname, setUserData]);
 
   const handleUpdateName = (name: string) => {
     setCustomDisplayName(name);

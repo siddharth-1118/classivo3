@@ -197,36 +197,64 @@ export default function ProfilePage() {
             }}
           >
             <motion.div variants={containerVariants} initial="hidden" animate="show">
-              <InfoRow icon="apartment" label="Department" value={profile?.dept} />
-              <InfoRow icon="calendar_month" label="Semester" value={profile?.semester ? `Semester ${profile.semester}` : undefined} />
-              <InfoRow icon="groups" label="Section" value={profile?.section} />
-              <InfoRow icon="badge" label="Batch" value={profile?.batch} />
-              <InfoRow icon="mail" label="Email" value={profile?.email} />
+              {(() => {
+                const prof = profile as any;
+                return (
+                  <>
+                    <InfoRow icon="school" label="Institution" value={prof?.institution || prof?.campus} />
+                    <InfoRow icon="auto_stories" label="Program" value={prof?.program} />
+                    <InfoRow icon="apartment" label="Department" value={prof?.dept || prof?.department} />
+                    <InfoRow icon="calendar_month" label="Semester" value={prof?.semester ? `Semester ${prof.semester}` : undefined} />
+                    <InfoRow icon="groups" label="Section" value={prof?.section} />
+                    <InfoRow icon="badge" label="Batch" value={prof?.batch} />
+                    <InfoRow icon="mail" label="Email" value={prof?.email} />
+                    <InfoRow icon="id_card" label="Student ID" value={prof?.studentId} />
+                    <InfoRow icon="person" label="Faculty Advisor" value={prof?.facultyAdvisor} />
+                    <InfoRow icon="person_4" label="Academic Advisor" value={prof?.academicAdvisor} />
+                  </>
+                );
+              })()}
             </motion.div>
           </motion.div>
 
-          {/* Hostel card if connected via SRM Portal */}
-          {userData?.hostel?.hostel && (
-            <motion.div
-              variants={itemVariant}
-              className="rounded-3xl px-5 aurora-surface"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(148,163,184,0.12)",
-              }}
-            >
-              <motion.div variants={containerVariants} initial="hidden" animate="show">
-                <div className="pt-4 pb-2 border-b border-white/[0.05]">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
-                    Hostel Accommodation
-                  </span>
-                </div>
-                <InfoRow icon="home" label="Hostel Name" value={userData.hostel.hostel.hostelName} />
-                <InfoRow icon="meeting_room" label="Room Number" value={userData.hostel.hostel.roomNo} />
-                <InfoRow icon="event" label="Allotment Date" value={userData.hostel.hostel.allotmentDate} />
+          {/* Hostel card */}
+          {(() => {
+            const hostelObj = userData?.hostel?.hostel || userData?.hostel;
+            const hostelName = hostelObj?.hostelName || hostelObj?.name || hostelObj?.booking?.labelValues?.["Hostel Name"] || hostelObj?.details?.labelValues?.["Hostel Name"];
+            const roomNo = hostelObj?.roomNo || hostelObj?.room || hostelObj?.booking?.labelValues?.["Room No"] || hostelObj?.details?.labelValues?.["Room No"];
+            const allotmentDate = hostelObj?.allotmentDate || hostelObj?.booking?.labelValues?.["Allotment Date"] || hostelObj?.details?.labelValues?.["Allotment Date"];
+            const feeAmount = hostelObj?.feeAmount || hostelObj?.booking?.labelValues?.["Fee Amount"];
+
+            const hasHostel = hostelName || roomNo || allotmentDate || feeAmount;
+            return (
+              <motion.div
+                variants={itemVariant}
+                className="rounded-3xl px-5 aurora-surface"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(148,163,184,0.12)",
+                }}
+              >
+                <motion.div variants={containerVariants} initial="hidden" animate="show">
+                  <div className="pt-4 pb-2 border-b border-white/[0.05]">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+                      Hostel Accommodation
+                    </span>
+                  </div>
+                  {hasHostel ? (
+                    <>
+                      {hostelName && <InfoRow icon="home" label="Hostel Name" value={hostelName} />}
+                      {roomNo && <InfoRow icon="meeting_room" label="Room Number" value={roomNo} />}
+                      {allotmentDate && <InfoRow icon="event" label="Allotment Date" value={allotmentDate} />}
+                      {feeAmount && <InfoRow icon="payments" label="Fee Amount" value={feeAmount} />}
+                    </>
+                  ) : (
+                    <InfoRow icon="home" label="Accommodation Status" value="Day Scholar / No Active Hostel Allotment" />
+                  )}
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
+            );
+          })()}
 
           {/* Logout button */}
           <motion.div variants={itemVariant}>

@@ -1,18 +1,31 @@
 export async function fetchWithLoadBalancer(endpoint: string, options: RequestInit = {}) {
-  // Read from env variable; fall back to the Cloudflare tunnel backend if not set
-  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URLS || "https://nancey-pandemoniacal-candra.ngrok-free.dev";
-  const urls = envUrl.split(",").map((u) => u.trim()).filter(Boolean);
+  const defaultAcademiaBackend = "https://classivo3.onrender.com";
+  const defaultPortalBackend = process.env.PORTAL_BACKEND_URL || "https://classivo-portal-backend-ascdgqevhuf6gqfx.centralindia-01.azurewebsites.net";
 
-  const shuffledUrls = [...urls].sort(() => Math.random() - 0.5);
+  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URLS || "";
+  const rawUrls = envUrl.split(",").map((u) => u.trim()).filter(Boolean);
+
+  let urls: string[] = [];
+
+  // Determine if this request is specifically for the SRM Student Portal connector
+  const isPortalEndpoint = endpoint.startsWith("/portal") || endpoint.startsWith("/api/portal") || endpoint.startsWith("/api/auth") || endpoint.startsWith("/api/student");
+
+  if (isPortalEndpoint) {
+    urls = [defaultPortalBackend, ...rawUrls, defaultAcademiaBackend];
+  } else {
+    urls = [...rawUrls, defaultAcademiaBackend, defaultPortalBackend];
+  }
+
+  // Deduplicate URLs while preserving order
+  urls = Array.from(new Set(urls.filter(Boolean)));
 
   let lastError: any = null;
 
-  for (const baseUrl of shuffledUrls) {
+  for (const baseUrl of urls) {
     try {
       const controller = new AbortController();
-      // Increased timeout to 60 seconds to allow ngrok to warm up
       const timeoutId = setTimeout(() => {
-        console.log(`[Proxy] Request to ${baseUrl} timed out after 60s`);
+        console.log(`[Proxy] Request to ${baseUrl}${endpoint} timed out after 60s`);
         controller.abort();
       }, 60000);
 
@@ -29,6 +42,13 @@ export async function fetchWithLoadBalancer(endpoint: string, options: RequestIn
       });
       
       clearTimeout(timeoutId);
+
+      // If endpoint doesn't exist on this backend (404), try the next server in load balancer list
+      if (res.status === 404 && urls.length > 1) {
+        console.log(`[Proxy] ${baseUrl}${endpoint} returned 404, trying next server...`);
+        lastError = new Error(`Server ${baseUrl} returned 404 for ${endpoint}`);
+        continue;
+      }
 
       if (res.ok || (res.status >= 400 && res.status < 500)) {
         return res;

@@ -428,7 +428,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (typeof data.detail === "object" && data.detail !== null) {
             throw data.detail;
           }
-          throw new Error(data.detail || "Login failed");
+          const errMsg = data.message || data.detail || (typeof data.error === "string" ? data.error : data.error?.message) || "Login failed";
+          throw new Error(errMsg);
         }
 
         // Inject email into profile object
@@ -512,20 +513,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsBackendError(false);
     setBackendErrorMsg(null);
     try {
-      const source = localStorage.getItem("classivo_connection_source") || "academia";
+      const source = localStorage.getItem("classivo_connection_source") || "srm_portal";
       const endpoint = source === "srm_portal" ? "/portal/sync" : "/refresh";
       const savedCookies = EncryptionUtils.loadDecrypted("academia_cookies");
+      const savedCreds = EncryptionUtils.loadDecrypted("classivo_credentials") || {};
+      const username = creds?.username || savedCreds?.username || "";
+      const password = creds?.password || savedCreds?.password || "";
+      const connectionId = (existingData as any)?.connectionId || (existingData as any)?.sessionId;
+
       const requestBody = source === "srm_portal"
-        ? { username: creds.username, password: creds.password, source: "srm_portal" }
+        ? { username, password, source: "srm_portal", connectionId, sessionId: connectionId }
         : { ...creds, cookies: savedCookies };
+
+      const headers: Record<string, string> = { 
+        "Content-Type": "application/json",
+        "X-Student-Key": username,
+        "X-Ratio-App": "true"
+      };
+      if (connectionId) {
+        headers["X-Session-Id"] = connectionId;
+      }
 
       const response = await fetchWithLoadBalancer(endpoint, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-Student-Key": creds.username,
-          "X-Ratio-App": "true"
-        },
+        headers,
         body: JSON.stringify(requestBody),
       });
 

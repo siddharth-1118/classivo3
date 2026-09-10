@@ -280,9 +280,12 @@ export const processAndSortMarks = (
           return { title, got, max };
         })
         .filter(Boolean);
-      const perfString = subject.performance || "N/A";
-      const isNA =
-        perfString === "N/A" || perfString === "." || perfString === "";
+      const directGot = subject.obtainedMarks ?? subject.totalGot ?? subject.total ?? subject.mark ?? subject.score;
+      const directMax = subject.maxMarks ?? subject.totalMax ?? subject.max;
+      const hasDirectMarks = directGot !== undefined && directGot !== null && !isNaN(Number(directGot));
+
+      const perfString = subject.performance || (hasDirectMarks ? `${directGot}/${directMax || 5}` : "N/A");
+      const isNA = (perfString === "N/A" || perfString === "." || perfString === "") && !hasDirectMarks;
       
       let got = 0;
       let max = 0;
@@ -290,7 +293,10 @@ export const processAndSortMarks = (
       const assessmentGot = assessments.reduce((sum: number, curr: any) => sum + curr.got, 0);
       const assessmentMax = assessments.reduce((sum: number, curr: any) => sum + curr.max, 0);
 
-      if (!isNA && perfString.includes("/")) {
+      if (hasDirectMarks) {
+        got = Number(directGot) || 0;
+        max = Number(directMax) || (got > 0 ? (got <= 5 ? 5 : got <= 15 ? 15 : got <= 50 ? 50 : 100) : 100);
+      } else if (!isNA && perfString.includes("/")) {
         const parts = perfString.split("/");
         got = parseFloat(parts[0]) || 0;
         max = parseFloat(parts[1]) || 0;
@@ -304,7 +310,7 @@ export const processAndSortMarks = (
         max = assessmentMax;
       }
 
-      const actualIsNA = (isNA || max === 0) && assessments.length === 0;
+      const actualIsNA = !hasDirectMarks && (isNA || max === 0) && assessments.length === 0;
       const percentage = max > 0 ? (got / max) * 100 : 0;
       const code = subject.courseCode || "";
       const cleanCode = code.trim();

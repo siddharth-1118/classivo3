@@ -278,9 +278,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       try {
         academiaData = await performLogin(creds);
       } catch (err: any) {
-        if (err?.type === "CAPTCHA_REQUIRED") {
-          setCaptchaImage(err.image);
-          setCdigest(err.cdigest);
+        if (err?.type === "CAPTCHA_REQUIRED" || err?.captcha_required) {
+          setCaptchaImage(err.image || err.captcha_image || err.captcha || null);
+          setCdigest(err.cdigest || err.captchaCdigest || null);
           setError(err.message || "Please enter the Academia CAPTCHA.");
           setCaptchaInput("");
         } else {

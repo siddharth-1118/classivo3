@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "ts-node src/parsers/attendanceParser.test.ts && ts-node src/parsers/gradeParser.test.ts && ts-node src/parsers/hostelParser.test.ts"
+    "test": "ts-node src/parsers/attendanceParser.test.ts && ts-node src/parsers/gradeParser.test.ts && ts-node src/parsers/hostelParser.test.ts && ts-node src/parsers/unifiedMarksParser.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.1",

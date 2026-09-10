@@ -7,7 +7,6 @@ import type {
   HostelPayment,
   HostelBooking,
 } from "../../../../src/lib/types/portal";
-import { HostelDataSchema } from "../../../../src/lib/schemas/portal-schemas";
 import {
   normalizeWs,
   parseNum,
@@ -313,10 +312,7 @@ export function parseHostel(html: string): HostelData {
     declarationFormAvailable,
   };
 
-  const parsed = HostelDataSchema.safeParse(result);
-  if (parsed.success) {
-    return parsed.data;
-  }
+  return result;
 
   const relaxed: HostelData = {
     sourceTimestamp: now,

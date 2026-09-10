@@ -25,26 +25,45 @@ import { parseAcademicCalendar } from './parsers/academicCalendarParser';
 import { parseTimetable } from './parsers/timetableParser';
 import * as cheerio from 'cheerio';
 import { SrmErrorCode } from './types/srm.types';
+import { srmLog, srmError } from './utils/srmLogger';
+import { buildUnifiedMarks } from './parsers/unifiedMarksParser';
+import { extractStudentCourses } from './parsers/courseParser';
+import { parseHostelBookingPage } from './parsers/hostelBookingParser';
+import { parseHostelDetailsPage } from './parsers/hostelDetailsParser';
+import { parseDashboard } from './parsers/parse-dashboard';
+import { parseHostel } from './parsers/parse-hostel';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Parse allowed origins from environment (comma-separated)
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'https://classivo-1.vercel.app,http://localhost:9000,http://localhost:3000,http://localhost:5173')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
+const defaultOrigins = [
+  'https://classivo-1.vercel.app',
+  'http://localhost:9000',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3001'
+];
+const envOrigins = [
+  ...(process.env.ALLOWED_ORIGINS || '').split(','),
+  ...(process.env.FRONTEND_URL || '').split(',')
+].map(o => o.trim()).filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    if (
+      allowedOrigins.includes(origin) ||
+      allowedOrigins.includes('*') ||
+      origin.includes('localhost') ||
+      origin.endsWith('.vercel.app')
+    ) {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+    return callback(null, true);
   },
   credentials: true,
 }));
@@ -283,6 +302,13 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
     '/portal/srm/login':             '/api/auth/login',
     '/portal/srm/logout':            '/api/auth/logout',
     '/portal/srm/status':            '/api/auth/status',
+    '/portal/sync':                  '/api/auth/sync',
+    '/portal/srm/sync':              '/api/auth/sync',
+    '/portal/all':                   '/api/student/all',
+    '/portal/srm/all':               '/api/student/all',
+    '/portal/student/all':           '/api/student/all',
+    '/portal/courses':               '/api/student/courses',
+    '/portal/srm/courses':           '/api/student/courses',
   };
 
   const rewrite = portalInitMap[req.path];
@@ -470,6 +496,429 @@ app.post('/api/auth/captcha/refresh', requireAuth, async (req: AuthenticatedRequ
   }
 });
 
+async function fetchInternalMarksHtml(session: HttpSRMSession): Promise<string> {
+  const dashboardHtml = session.dashboardHtml || '';
+  const links = extractSidebarLinks(dashboardHtml);
+  
+  const intLink = links.find(l => {
+    const text = l.text.toLowerCase();
+    const onclick = l.onclick.toLowerCase();
+    return (
+      (text.includes('internal') && (text.includes('mark') || text.includes('detail'))) ||
+      text === 'internal mark details' ||
+      text === 'internal marks' ||
+      onclick.includes('studentinternalmark') ||
+      onclick.includes('internalmark')
+    );
+  });
+
+  // Never use formId 8 (Grade / Mark & Credit page) for internal marks!
+  let formId = intLink?.formId;
+  if (!formId || formId === 8) {
+    formId = 13;
+  }
+
+  const jspUrl = intLink?.jspUrl || 'StudentInternalMarkDetails.jsp';
+
+  const isInternalMarksHtml = (html: string) => {
+    if (!html) return false;
+    const lower = html.toLowerCase();
+    // Reject if it is purely the Grade / Mark & Credit page (Page 1) with SGPA / letter grades only
+    if ((lower.includes('grade / mark & credit') || lower.includes('sgpa') || lower.includes('grade point')) &&
+        !lower.includes('mark / max') && !lower.includes('studentinternalmarkdetails')) {
+      return false;
+    }
+    return (
+      lower.includes('internal mark') ||
+      lower.includes('mark / max') ||
+      lower.includes('studentinternalmark') ||
+      lower.includes('description')
+    );
+  };
+
+  // 1. Try AJAX navigation via jspUrl if extracted
+  if (jspUrl) {
+    try {
+      srmLog('INTERNAL_MARKS', `Attempting AJAX navigation to ${jspUrl} (formId=${formId})...`);
+      const ajaxRes = await navigateViaAjax(session.client, dashboardHtml, formId, jspUrl);
+      if (isInternalMarksHtml(ajaxRes.html)) {
+        srmLog('INTERNAL_MARKS', `AJAX navigation succeeded (${ajaxRes.html.length} bytes)`);
+        return ajaxRes.html;
+      }
+    } catch (e: any) {
+      srmError('INTERNAL_MARKS', `AJAX navigation to ${jspUrl} failed: ${e.message}`);
+    }
+  }
+
+  // 2. Try candidate AJAX endpoints with candidate formIds
+  const candidateJspUrls = [
+    'StudentInternalMarkDetails.jsp',
+    '../students/template/StudentInternalMarkDetails.jsp',
+    'students/template/StudentInternalMarkDetails.jsp',
+    'StudentInternalMarks.jsp',
+    'InternalMarkDetails.jsp'
+  ];
+
+  const candidateFormIds = Array.from(new Set([formId, 13, 25, 14, 15])).filter(id => id !== 8);
+
+  for (const fId of candidateFormIds) {
+    for (const candidateUrl of candidateJspUrls) {
+      try {
+        const ajaxRes = await navigateViaAjax(session.client, dashboardHtml, fId, candidateUrl);
+        if (isInternalMarksHtml(ajaxRes.html)) {
+          srmLog('INTERNAL_MARKS', `Candidate AJAX navigation (formId=${fId}, url=${candidateUrl}) succeeded`);
+          return ajaxRes.html;
+        }
+      } catch {}
+    }
+  }
+
+  // 3. Fallback to HRDSystem.jsp section navigation
+  srmLog('INTERNAL_MARKS', `Falling back to navigateToSrmSection for formId=${formId}...`);
+  return await navigateToSrmSection(session, formId, 'Internal Mark Details');
+}
+
+// --------------------------------------------------------------------
+// HELPER: Extract Full Student Data (Profile, Attendance, Marks, Timetable, Calendar, Courses)
+// --------------------------------------------------------------------
+
+async function extractFullStudentData(session: HttpSRMSession): Promise<Record<string, any>> {
+  srmLog('ALL_DATA', `Starting full extraction for session ${session.netId || 'active'}...`);
+
+  const responseData: Record<string, any> = {
+    success: true,
+    sources: {
+      profile: 'srm_portal',
+      courses: 'srm_portal',
+      attendance: 'srm_portal',
+      marks: 'srm_portal',
+      timetable: 'srm_portal',
+      academicCalendar: 'srm_portal',
+    }
+  };
+
+  // 1. Profile Extraction (Merging Dashboard landing page + Personal Details)
+  let profileData: any = {};
+  let dashboardData: any = null;
+
+  if (session.dashboardHtml) {
+    try {
+      dashboardData = parseDashboard(session.dashboardHtml);
+      srmLog('PROFILE', `Dashboard parsed:`, { name: dashboardData.studentName, regNo: dashboardData.registerNumber });
+      if (dashboardData) {
+        profileData = {
+          name: dashboardData.studentName || null,
+          studentId: dashboardData.studentId || null,
+          registrationNumber: dashboardData.registerNumber || null,
+          registerNumber: dashboardData.registerNumber || null,
+          regNo: dashboardData.registerNumber || null,
+          email: dashboardData.email || null,
+          institution: dashboardData.institution || null,
+          campus: dashboardData.institution || null,
+          program: dashboardData.program || null,
+          semester: dashboardData.semester ? String(dashboardData.semester) : null,
+          batch: dashboardData.batch || null,
+          section: dashboardData.section || null,
+          roomNo: dashboardData.roomNo || null,
+          facultyAdvisor: dashboardData.facultyAdvisor || null,
+          academicAdvisor: dashboardData.academicAdvisor || null,
+          currentStatus: dashboardData.currentStatus || 'Active',
+          status: dashboardData.currentStatus || 'Active',
+          cgpa: dashboardData.cgpa ? String(dashboardData.cgpa) : null,
+        };
+      }
+    } catch (dashErr: any) {
+      srmError('PROFILE', `Dashboard parsing error: ${dashErr.message}`);
+    }
+  }
+
+  try {
+    const personalDetailsHtml = await navigateToSrmSection(session, 17, 'Personal Details');
+    const $ = cheerio.load(personalDetailsHtml);
+    const data: Record<string, string> = {};
+
+    $('tr').each((_, trEl) => {
+      const tds = $(trEl).find('td');
+      if (tds.length >= 2) {
+        const label = tds.eq(0).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
+        const value = tds.eq(1).text().trim().replace(/\s+/g, ' ');
+        if (label && value && label.length < 60) {
+          data[label] = value;
+        }
+      }
+    });
+
+    $('dl').each((_, dl) => {
+      const dts = $(dl).find('dt');
+      const dds = $(dl).find('dd');
+      dts.each((i, dt) => {
+        const label = $(dt).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
+        const value = $(dds.eq(i)).text().trim().replace(/\s+/g, ' ');
+        if (label) data[label] = value;
+      });
+    });
+
+    const fieldMap: Record<string, string[]> = {
+      name: ['Student Name', 'Name', 'Full Name'],
+      registrationNumber: ['Register Number', 'Reg No', 'Registration No', 'Student Id', 'Student ID'],
+      rollNumber: ['Roll Number', 'Roll No'],
+      email: ['Email', 'Email Id', 'Email ID'],
+      mobile: ['Mobile', 'Mobile Number', 'Phone', 'Contact No'],
+      program: ['Program', 'Programme', 'Degree'],
+      department: ['Department', 'Dept', 'Branch', 'Specialization'],
+      specialization: ['Specialization', 'Branch'],
+      batch: ['Batch', 'Year of Admission'],
+      academicYear: ['Academic Year', 'Year'],
+      semester: ['Semester', 'Sem'],
+      section: ['Section'],
+      campus: ['Campus', 'Institution'],
+      faculty: ['School', 'Faculty', 'Department'],
+      admissionInfo: ['Admission', 'Quota'],
+      status: ['Status', 'Student Status', 'Academic Status'],
+    };
+
+    for (const [normalized, variants] of Object.entries(fieldMap)) {
+      let found: string | null = null;
+      for (const variant of variants) {
+        const match = Object.entries(data).find(([k]) => k.toLowerCase().includes(variant.toLowerCase()));
+        if (match) {
+          found = match[1];
+          break;
+        }
+      }
+      if (found) {
+        profileData[normalized] = found;
+      }
+    }
+    srmLog('PROFILE', `Personal Details merged successfully`, { name: profileData.name, regNo: profileData.registrationNumber });
+  } catch (err: any) {
+    srmError('PROFILE', `Failed to extract personal details section: ${err.message}`);
+  }
+
+  // Ensure aliases and fallbacks for complete profile object
+  const netIdClean = (session.netId || '').trim();
+  profileData.name = profileData.name || netIdClean || 'Student';
+  profileData.registrationNumber = profileData.registrationNumber || profileData.registerNumber || profileData.studentId || netIdClean;
+  profileData.registerNumber = profileData.registrationNumber;
+  profileData.regNo = profileData.registrationNumber;
+  profileData.dept = profileData.dept || profileData.department || profileData.specialization || profileData.program;
+  profileData.email = profileData.email || (netIdClean ? `${netIdClean}@srmist.edu.in` : null);
+
+  responseData.profile = profileData;
+
+  // Determine student category (FIRST_YEAR vs SECOND_YEAR_PLUS)
+  const semNum = profileData && profileData.semester ? parseInt(String(profileData.semester).replace(/[^0-9]/g, ''), 10) : NaN;
+  const isFirstYear = !isNaN(semNum) ? semNum <= 2 : true;
+  responseData.studentCategory = isFirstYear ? 'FIRST_YEAR' : 'SECOND_YEAR_PLUS';
+
+  // 2. Attendance Extraction
+  let parsedAttendance: any = null;
+  try {
+    const attHtml = await navigateToSrmSection(session, 9, 'Attendance Details');
+    parsedAttendance = parseAttendance(attHtml);
+    srmLog('ATTENDANCE', `Extracted ${parsedAttendance.subjects.length} attendance records`);
+    responseData.attendance = parsedAttendance.subjects.map((s: any) => ({
+      courseCode: s.courseCode,
+      courseName: s.courseName,
+      courseType: s.courseType,
+      faculty: s.faculty,
+      classesHeld: s.classesHeld,
+      classesAttended: s.classesAttended,
+      percentage: s.percentage,
+      status: s.status,
+      code: s.courseCode,
+      title: s.courseName,
+      subject: s.courseName,
+      attended: s.classesAttended || 0,
+      conducted: s.classesHeld || 0,
+      absent: Math.max(0, (s.classesHeld || 0) - (s.classesAttended || 0)),
+    }));
+  } catch (err: any) {
+    srmError('ATTENDANCE', `Failed to extract attendance: ${err.message}`);
+    responseData.attendance = { status: 'error', data: [], message: err.message || 'Unable to retrieve attendance from Student Portal' };
+  }
+
+  // 3. Internal Marks Extraction (exclusively from Internal Mark Details page)
+  let internalMarksList: any[] = [];
+  try {
+    const intHtml = await fetchInternalMarksHtml(session);
+    const parsedInternalMarks = parseInternalMarks(intHtml);
+    
+    if (parsedInternalMarks && parsedInternalMarks.subjects && parsedInternalMarks.subjects.length > 0) {
+      internalMarksList = parsedInternalMarks.subjects.map(s => ({
+        code: s.courseCode,
+        courseCode: s.courseCode,
+        title: s.courseName,
+        courseName: s.courseName,
+        subject: s.courseName,
+        courseTitle: s.courseName,
+        obtainedMarks: s.obtainedMarks,
+        maxMarks: s.maxMarks,
+        totalGot: s.obtainedMarks,
+        totalMax: s.maxMarks,
+        total: s.obtainedMarks,
+        performance: (s.obtainedMarks !== null && s.maxMarks !== null) ? `${s.obtainedMarks}/${s.maxMarks}` : 'N/A',
+        components: s.components || {},
+        status: s.status || 'active',
+      }));
+    }
+    srmLog('INTERNAL_MARKS', `Extracted ${internalMarksList.length} internal mark records from Internal Mark Details page`);
+  } catch (err: any) {
+    srmError('INTERNAL_MARKS', `Internal Mark Details navigation failed: ${err.message}`);
+  }
+
+  responseData.marks = internalMarksList;
+
+  // 3b. Official Grades Extraction (from Grade / Mark & Credit page)
+  let gradesList: any[] = [];
+  try {
+    const links = extractSidebarLinks(session.dashboardHtml || '');
+    const gradeLink = links.find(l => ['grade', 'credit'].some(p => l.text.toLowerCase().includes(p)));
+    const gradeFormId = gradeLink?.formId || 8;
+    const gradeHtml = await navigateToSrmSection(session, gradeFormId, 'Grade / Mark & Credit');
+    const parsedGrades = parseGradePage(gradeHtml);
+    if (parsedGrades && parsedGrades.courses && parsedGrades.courses.length > 0) {
+      gradesList = parsedGrades.courses.map(c => c._raw);
+    }
+    srmLog('GRADES', `Extracted ${gradesList.length} grade records from Grade / Mark & Credit page`);
+  } catch (err: any) {
+    srmError('GRADES', `Grade extraction failed: ${err.message}`);
+  }
+
+  responseData.grades = gradesList;
+
+
+  // 4. Timetable Extraction
+  let parsedTimetable: any = null;
+  try {
+    const links = extractSidebarLinks(session.dashboardHtml || '');
+    const ttLink = links.find(l => ['timetable', 'time table', 'schedule'].some(p => l.text.toLowerCase().includes(p)));
+    const ttFormId = ttLink?.formId || 130;
+    const ttHtml = await navigateToSrmSection(session, ttFormId, 'Timetable');
+    parsedTimetable = parseTimetable(ttHtml);
+    srmLog('TIMETABLE', `Extracted timetable slots`, { entries: parsedTimetable._diagnostics?.entriesExtracted });
+    responseData.timetable = parsedTimetable.schedule;
+    responseData.schedule = parsedTimetable.schedule;
+    responseData.dayNames = parsedTimetable.dayNames;
+  } catch (err: any) {
+    srmError('TIMETABLE', `Failed to extract timetable: ${err.message}`);
+    responseData.timetable = { status: 'error', data: [], message: err.message || 'Unable to retrieve timetable from Student Portal' };
+    responseData.schedule = {};
+  }
+
+  // 5. Academic Calendar Extraction
+  let parsedCalendar: any = null;
+  try {
+    const links = extractSidebarLinks(session.dashboardHtml || '');
+    const calLink = links.find(l => ['calendar', 'academic planner'].some(p => l.text.toLowerCase().includes(p)));
+    const calFormId = calLink?.formId || 10;
+    const calHtml = await navigateToSrmSection(session, calFormId, 'Academic Calendar');
+    parsedCalendar = parseAcademicCalendar(calHtml);
+    srmLog('CALENDAR', `Extracted ${parsedCalendar.entries.length} calendar entries`);
+    responseData.academicCalendar = parsedCalendar.entries;
+    responseData.calendarSummary = parsedCalendar.summary;
+  } catch (err: any) {
+    srmError('CALENDAR', `Failed to extract academic calendar: ${err.message}`);
+    responseData.academicCalendar = { status: 'error', data: [], message: err.message || 'Unable to retrieve academic calendar from Student Portal' };
+  }
+
+  // 6. Registered Courses Extraction
+  try {
+    const courses = extractStudentCourses(parsedAttendance, null, parsedTimetable);
+    srmLog('COURSES', `Extracted ${courses.length} courses`);
+    responseData.courses = courses;
+  } catch (err: any) {
+    responseData.courses = { status: 'error', data: [], message: err.message || 'Unable to extract courses' };
+  }
+
+  // 7. Hostel Details & Booking Extraction
+  try {
+    const links = extractSidebarLinks(session.dashboardHtml || '');
+    const hostelLinks = links.filter(l => l.text.toLowerCase().includes('hostel'));
+    
+    const targetFormIds = new Set<number>();
+    hostelLinks.forEach(l => { if (l.formId) targetFormIds.add(l.formId); });
+    // Standard SRM Hostel formIds
+    targetFormIds.add(14); // Hostel Booking
+    targetFormIds.add(11); // Hostel Details
+    targetFormIds.add(15); // Hostel Willingness / Fee
+
+    let hostelData: any = {};
+
+    if (dashboardData?.hostelRoomDetails) {
+      if (dashboardData.hostelRoomDetails.hostelName) hostelData.hostelName = dashboardData.hostelRoomDetails.hostelName;
+      if (dashboardData.hostelRoomDetails.roomNo) hostelData.roomNo = dashboardData.hostelRoomDetails.roomNo;
+    }
+
+    for (const formId of Array.from(targetFormIds)) {
+      try {
+        const html = await navigateToSrmSection(session, formId, `Hostel Section (${formId})`);
+        
+        // 1. Comprehensive parseHostel (handles multi-column allotment tables)
+        const parsedHostel = parseHostel(html);
+        if (parsedHostel && parsedHostel.hostel) {
+          if (parsedHostel.hostel.hostelName && !hostelData.hostelName) {
+            hostelData.hostelName = parsedHostel.hostel.hostelName;
+          }
+          if (parsedHostel.hostel.roomNo && !hostelData.roomNo) {
+            hostelData.roomNo = parsedHostel.hostel.roomNo;
+          }
+          if (parsedHostel.hostel.allotmentDate && !hostelData.allotmentDate) {
+            hostelData.allotmentDate = parsedHostel.hostel.allotmentDate;
+          }
+          if (parsedHostel.hostel.feeAmount && !hostelData.feeAmount) {
+            hostelData.feeAmount = String(parsedHostel.hostel.feeAmount);
+          }
+        }
+        
+        // 2. parseHostelBookingPage for KV maps
+        const bookingParsed = parseHostelBookingPage(html);
+        if (bookingParsed?.labelValues) {
+          if (bookingParsed.labelValues['Hostel Name'] && !hostelData.hostelName) hostelData.hostelName = bookingParsed.labelValues['Hostel Name'];
+          if (bookingParsed.labelValues['Room No'] && !hostelData.roomNo) hostelData.roomNo = bookingParsed.labelValues['Room No'];
+          if (bookingParsed.labelValues['Allotment Date'] && !hostelData.allotmentDate) hostelData.allotmentDate = bookingParsed.labelValues['Allotment Date'];
+          if (bookingParsed.labelValues['Fee Amount'] && !hostelData.feeAmount) hostelData.feeAmount = bookingParsed.labelValues['Fee Amount'];
+        }
+
+        // 3. parseHostelDetailsPage for KV maps
+        const detailsParsed = parseHostelDetailsPage(html);
+        if (detailsParsed?.labelValues) {
+          if (detailsParsed.labelValues['Hostel Name'] && !hostelData.hostelName) hostelData.hostelName = detailsParsed.labelValues['Hostel Name'];
+          if (detailsParsed.labelValues['Room No'] && !hostelData.roomNo) hostelData.roomNo = detailsParsed.labelValues['Room No'];
+          if (detailsParsed.labelValues['Allotment Date'] && !hostelData.allotmentDate) hostelData.allotmentDate = detailsParsed.labelValues['Allotment Date'];
+        }
+      } catch (e: any) {
+        srmError('HOSTEL', `Hostel formId ${formId} navigation error: ${e.message}`);
+      }
+    }
+
+    const hostelNameFinal = hostelData.hostelName || null;
+    const roomNoFinal = hostelData.roomNo || null;
+    const allotmentDateFinal = hostelData.allotmentDate || null;
+    const feeAmountFinal = hostelData.feeAmount || null;
+
+    srmLog('HOSTEL', `Extracted hostel details`, { hostelName: hostelNameFinal, roomNo: roomNoFinal });
+
+    hostelData.hostelName = hostelNameFinal;
+    hostelData.roomNo = roomNoFinal;
+    hostelData.allotmentDate = allotmentDateFinal;
+    hostelData.feeAmount = feeAmountFinal;
+
+    hostelData.hostel = {
+      hostelName: hostelNameFinal,
+      roomNo: roomNoFinal,
+      allotmentDate: allotmentDateFinal,
+      feeAmount: feeAmountFinal,
+    };
+    responseData.hostel = hostelData;
+  } catch (err: any) {
+    srmError('HOSTEL', `Failed to extract hostel info: ${err.message}`);
+    responseData.hostel = { status: 'error', data: null, message: err.message || 'Unable to retrieve hostel info from Student Portal' };
+  }
+
+  return responseData;
+}
+
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   const { sessionId: bodySessionId, connectionId, netId, registrationNumber, password, captcha } = req.body;
   const sessionId = bodySessionId || connectionId || (req.headers['x-session-id'] as string);
@@ -534,64 +983,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       // Cache the dashboard HTML for navigation
       session.dashboardHtml = result.html;
 
-      // Fetch the profile immediately during login to prevent frontend redirect loops due to missing profile
-      let profile: Record<string, string | null> | null = null;
-      try {
-        console.log(`[AUTH LOGIN] Fetching student profile for session ${sessionId}...`);
-        const personalDetailsHtml = await navigateToSrmSection(session, 17, 'Personal Details');
-        const $ = cheerio.load(personalDetailsHtml);
-        const data: Record<string, string> = {};
-
-        $('tr').each((_, trEl) => {
-          const tds = $(trEl).find('td');
-          if (tds.length >= 2) {
-            const label = tds.eq(0).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
-            const value = tds.eq(1).text().trim().replace(/\s+/g, ' ');
-            if (label && value && label.length < 60) {
-              data[label] = value;
-            }
-          }
-        });
-
-        $('dl').each((_, dl) => {
-          const dts = $(dl).find('dt');
-          const dds = $(dl).find('dd');
-          dts.each((i, dt) => {
-            const label = $(dt).text().trim().replace(/\s+/g, ' ').replace(/:$/, '');
-            const value = $(dds.eq(i)).text().trim().replace(/\s+/g, ' ');
-            if (label) data[label] = value;
-          });
-        });
-
-        const fieldMap: Record<string, string[]> = {
-          name: ['Student Name', 'Name', 'Full Name'],
-          studentId: ['Student Id', 'Student ID', 'NetID'],
-          registerNumber: ['Register Number', 'Reg No', 'Registration No'],
-          email: ['Email', 'Email Id'],
-          program: ['Program', 'Programme', 'Course'],
-          semester: ['Semester', 'Sem'],
-          batch: ['Batch', 'Year'],
-          section: ['Section'],
-        };
-
-        const extractedProfile: Record<string, string | null> = {};
-        for (const [normalized, variants] of Object.entries(fieldMap)) {
-          for (const variant of variants) {
-            const match = Object.entries(data).find(([k]) =>
-              k.toLowerCase().includes(variant.toLowerCase())
-            );
-            if (match) {
-              extractedProfile[normalized] = match[1];
-              break;
-            }
-          }
-          if (!extractedProfile[normalized]) extractedProfile[normalized] = null;
-        }
-        profile = extractedProfile;
-        console.log(`[AUTH LOGIN] Profile successfully fetched for student: ${profile.name}`);
-      } catch (err) {
-        console.error('[AUTH LOGIN] Failed to fetch profile during login:', err);
-      }
+      console.log(`[AUTH LOGIN] Login successful for session ${sessionId}, extracting full student data...`);
+      const fullStudentData = await extractFullStudentData(session);
 
       const authMinutes = process.env.SESSION_TIMEOUT_MINUTES
         ? parseInt(process.env.SESSION_TIMEOUT_MINUTES, 10) : 20;
@@ -609,12 +1002,13 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         console.error(`[SUPABASE] Failed to update login success:`, err);
       }
 
-      console.log(`[AUTH LOGIN] Success: ${sessionId}`);
+      console.log(`[AUTH LOGIN] Full student data extracted successfully for session ${sessionId}`);
       return res.json({
         success: true,
         authenticated: true,
         sessionId: session.sessionId,
-        profile: profile,
+        connectionId: session.sessionId,
+        ...fullStudentData,
         message: 'Login successful'
       });
     } else {
@@ -709,6 +1103,29 @@ app.post('/api/auth/logout', async (req: Request, res: Response) => {
   });
 });
 
+app.post('/api/auth/sync', async (req: Request, res: Response) => {
+  const sessionId = (req.body && (req.body.sessionId || req.body.connectionId)) || (req.headers['x-session-id'] as string);
+  const session = sessionId ? sessionStore.getSession(sessionId) : null;
+
+  if (!session || !session.authenticated) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'SESSION_EXPIRED', message: 'Session expired or not authenticated.' }
+    });
+  }
+
+  try {
+    console.log(`[AUTH SYNC] Syncing full student data for session ${sessionId}...`);
+    const fullData = await extractFullStudentData(session);
+    return res.json({
+      success: true,
+      ...fullData
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message || 'Sync failed.' });
+  }
+});
+
 app.get('/api/auth/status', async (req: Request, res: Response) => {
   const sessionId = req.headers['x-session-id'] as string;
   if (!sessionId) {
@@ -763,6 +1180,44 @@ app.get('/api/auth/status', async (req: Request, res: Response) => {
   });
 });
 
+// --------------------------------------------------------------------
+// UNIFIED STUDENT DATA & COURSES ROUTES
+// --------------------------------------------------------------------
+
+app.get(['/api/student/all', '/portal/all', '/portal/srm/all', '/portal/student/all'], requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const session = req.srmSession!;
+  const data = await extractFullStudentData(session);
+  return res.json(data);
+});
+
+app.get(['/api/student/courses', '/portal/courses', '/portal/srm/courses'], requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const session = req.srmSession!;
+  srmLog('COURSES', `Extracting courses for session ${session.netId || 'active'}...`);
+
+  try {
+    let attendanceData: any = null;
+    try {
+      const attHtml = await navigateToSrmSection(session, 9, 'Attendance Details');
+      attendanceData = parseAttendance(attHtml);
+    } catch {}
+
+    let gradeData: any = null;
+    try {
+      const gradeHtml = await navigateToSrmSection(session, 8, 'Grade / Mark & Credit');
+      gradeData = parseGradePage(gradeHtml);
+    } catch {}
+
+    const courses = extractStudentCourses(attendanceData, gradeData, null);
+    return res.json({
+      success: true,
+      data: courses,
+      count: courses.length
+    });
+  } catch (err: any) {
+    return handleExtractionError(err, res);
+  }
+});
+
 app.get('/health', (req: Request, res: Response) => {
   return res.json({
     status: 'ok',
@@ -793,7 +1248,7 @@ async function navigateToSrmSection(session: HttpSRMSession, formId: number, sec
   try {
     const shellResult = await navigateToSection(session.client, html, formId, sectionName);
     shellHtml = shellResult.html;
-    session.dashboardHtml = shellHtml; // Update cached HTML
+    // Do NOT overwrite session.dashboardHtml with sub-page HTML so main UserHomePage.jsp stays cached
   } catch (err: any) {
     if (err.message === 'SRM_SESSION_EXPIRED') throw err;
     console.log(`[NAV] Shell navigation failed: ${err.message}`);
@@ -933,7 +1388,7 @@ app.get('/api/student/profile', requireAuth, async (req: AuthenticatedRequest, r
   }
 });
 
-app.get(['/api/student/grades', '/api/student/marks'], requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.get('/api/student/grades', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const session = req.srmSession!;
   try {
     // Navigate to Grade/Mark & Credit (formId=8)
@@ -942,7 +1397,7 @@ app.get(['/api/student/grades', '/api/student/marks'], requireAuth, async (req: 
     if (!html.toLowerCase().includes('grade') && !html.toLowerCase().includes('mark')) {
       throw Object.assign(new Error('WRONG_PAGE'), {
         code: 'WRONG_PAGE',
-        message: 'The Grades/Marks page was not opened.'
+        message: 'The Grades page was not opened.'
       });
     }
 
@@ -956,6 +1411,49 @@ app.get(['/api/student/grades', '/api/student/marks'], requireAuth, async (req: 
         semesters: parsed.semesters,
         overallSummary: parsed.overallSummary,
         _url: 'Grade / Mark & Credit'
+      }
+    });
+  } catch (err) {
+    return handleExtractionError(err, res);
+  }
+});
+
+app.get('/api/student/marks', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const session = req.srmSession!;
+  try {
+    const html = await fetchInternalMarksHtml(session);
+
+    if (!html.toLowerCase().includes('internal mark') && !html.toLowerCase().includes('internal assessment') && !html.toLowerCase().includes('mark')) {
+      throw Object.assign(new Error('WRONG_PAGE'), {
+        code: 'WRONG_PAGE',
+        message: 'The Internal Marks page was not opened.'
+      });
+    }
+
+    const parsed = parseInternalMarks(html);
+
+    return res.json({
+      success: true,
+      data: {
+        metadata: parsed.metadata,
+        subjects: parsed.subjects.map(s => ({
+          code: s.courseCode,
+          courseCode: s.courseCode,
+          title: s.courseName,
+          courseName: s.courseName,
+          subject: s.courseName,
+          courseTitle: s.courseName,
+          obtainedMarks: s.obtainedMarks,
+          maxMarks: s.maxMarks,
+          totalGot: s.obtainedMarks,
+          totalMax: s.maxMarks,
+          total: s.obtainedMarks,
+          performance: (s.obtainedMarks !== null && s.maxMarks !== null) ? `${s.obtainedMarks}/${s.maxMarks}` : 'N/A',
+          components: s.components || {},
+          status: s.status || 'active',
+        })),
+        tables: parsed.tables,
+        _url: 'Internal Mark Details'
       }
     });
   } catch (err) {
@@ -1183,8 +1681,7 @@ app.get('/api/student/attendance', requireAuth, async (req: AuthenticatedRequest
 app.get('/api/student/internal-marks', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const session = req.srmSession!;
   try {
-    // Navigate to Internal Mark Details (formId=13)
-    const html = await navigateToSrmSection(session, 13, 'Internal Mark Details');
+    const html = await fetchInternalMarksHtml(session);
 
     if (!html.toLowerCase().includes('internal mark') && !html.toLowerCase().includes('internal assessment')) {
       throw Object.assign(new Error('WRONG_PAGE'), {
@@ -1452,152 +1949,147 @@ function handleExtractionError(err: any, res: Response) {
 
 app.post('/api/academia/init', async (req: Request, res: Response) => {
   try {
-    const { email: rawEmail, username: rawUsername, password } = req.body || {};
-    const email = rawEmail || rawUsername || '';
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    const { email: rawEmail, username: rawUsername, password, captcha, cdigest } = req.body || {};
+    let username = (rawEmail || rawUsername || '').trim();
+    if (username && !username.includes('@')) {
+      username = `${username}@srmist.edu.in`;
+    }
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'SRM Email ID and password are required.' });
     }
 
-    console.log(`[Academia] Login attempt for: ${email}`);
+    console.log(`[Academia] Login attempt for: ${username}`);
 
-    // Create a fresh HTTP session for Academia
     const ACADEMIA_BASE = 'https://academia.srmist.edu.in';
+    const LOGIN_URL = 'https://academia.srmist.edu.in/accounts/signin.ac';
     const { CookieJar: ToughJar } = require('tough-cookie');
     const jar = new ToughJar();
+
     const client = axios.create({
-      timeout: 20000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Origin': ACADEMIA_BASE,
+        'Referer': `${ACADEMIA_BASE}/`,
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
       },
       maxRedirects: 5,
       validateStatus: (s: number) => s < 500,
     });
 
-    // Cookie interceptors for Academia session
     client.interceptors.request.use(async (config: any) => {
-      const url = `${ACADEMIA_BASE}${config.url || ''}`;
+      const url = config.url?.startsWith('http') ? config.url : `${ACADEMIA_BASE}${config.url || ''}`;
       const cookieString = await jar.getCookieString(url);
       if (cookieString) config.headers = { ...config.headers, Cookie: cookieString };
       return config;
     });
+
     client.interceptors.response.use(async (response: any) => {
       const setCookies = response.headers['set-cookie'];
       if (setCookies) {
-        const url = `${ACADEMIA_BASE}${response.config?.url || ''}`;
+        const url = response.config?.url?.startsWith('http') ? response.config.url : `${ACADEMIA_BASE}${response.config?.url || ''}`;
         const arr = Array.isArray(setCookies) ? setCookies : [setCookies];
         for (const c of arr) { try { await jar.setCookie(c, url); } catch {} }
       }
       return response;
     });
 
-    // Step 1: Load the login page
-    const loginPageResp = await client.get(`${ACADEMIA_BASE}/login`, {
-      maxRedirects: 5,
-      timeout: 15000,
-    });
-    console.log(`[Academia] Login page status: ${loginPageResp.status}`);
-
-    // Step 2: Submit login credentials
-    const loginResp = await client.post(`${ACADEMIA_BASE}/login`,
-      new URLSearchParams({ email, password }).toString(),
-      {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        maxRedirects: 5,
-        timeout: 20000,
-      }
-    );
-    console.log(`[Academia] Login response status: ${loginResp.status}`);
-
-    const loginHtml = typeof loginResp.data === 'string' ? loginResp.data : '';
-
-    // Check if login was successful (look for dashboard indicators)
-    const isLoggedIn = loginHtml.includes('logout') || loginHtml.includes('dashboard') || 
-                       loginHtml.includes('timetable') || loginHtml.includes('my-courses') ||
-                       loginResp.status === 200;
-
-    if (!isLoggedIn) {
-      console.log('[Academia] Login appears to have failed');
-      return res.status(401).json({ success: false, message: 'Invalid Academia credentials.' });
+    // Step 1: Initial GET to https://academia.srmist.edu.in/ to initialize cookies
+    try {
+      await client.get(`${ACADEMIA_BASE}/`);
+      await client.get(`${ACADEMIA_BASE}/accounts/p/10002227248/signin?hide_fp=true&orgtype=40&service_language=en&css_url=/49910842/academia-academic-services/downloadPortalCustomCss/login&dcc=true`);
+    } catch (e: any) {
+      console.log(`[Academia] Initial page load warning: ${e?.message}`);
     }
 
-    // Step 3: Try to fetch timetable page
-    let timetable: any[] = [];
-    try {
-      const timetableResp = await client.get(`${ACADEMIA_BASE}/my-timetable`, {
-        maxRedirects: 5,
-        timeout: 15000,
-      });
-      console.log(`[Academia] Timetable page status: ${timetableResp.status}`);
+    // Build payload for signin.ac
+    const payload = new URLSearchParams();
+    payload.append('username', username);
+    payload.append('password', password);
+    payload.append('client_portal', 'true');
+    payload.append('portal', '10002227248');
+    payload.append('servicename', 'ZohoCreator');
+    payload.append('serviceurl', `${ACADEMIA_BASE}/`);
+    payload.append('is_ajax', 'true');
+    payload.append('grant_type', 'password');
+    payload.append('service_language', 'en');
 
-      if (timetableResp.status === 200) {
-        const $ = cheerio.load(String(timetableResp.data));
-        // Extract timetable data from the page
-        $('table tr').each((_i, row) => {
-          const cells = $(row).find('td, th').map((_j, cell) => $(cell).text().trim()).get();
-          if (cells.length > 0 && cells.some(c => c.length > 0)) {
-            timetable.push(cells);
-          }
+    if (cdigest) payload.append('cdigest', cdigest);
+    if (captcha) payload.append('captcha', captcha);
+
+    const loginResp = await client.post(LOGIN_URL, payload.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    const responseData = typeof loginResp.data === 'object' ? loginResp.data : {};
+
+    // Check for error dict
+    if (responseData.error) {
+      const errObj = responseData.error;
+      const msg = typeof errObj === 'string' ? errObj : (errObj.msg || Object.values(errObj).join('; ') || 'Academia login failed');
+      return res.status(401).json({ success: false, message: msg });
+    }
+
+    if (responseData.status === 'fail') {
+      const code = responseData.code;
+      const msg = responseData.message || 'Login failed';
+      if (code === 'HIP_REQUIRED' || code === 'HIP_FAILED') {
+        const newCdigest = responseData.cdigest;
+        return res.status(200).json({
+          success: false,
+          captchaRequired: true,
+          cdigest: newCdigest,
+          captchaImage: `https://academia.srmist.edu.in/accounts/p/40-10002227248/webclient/v1/captcha/${newCdigest}?darkmode=false`,
+          message: 'CAPTCHA verification required for Academia.'
         });
       }
-    } catch (e: any) {
-      console.log(`[Academia] Timetable fetch failed: ${e?.message}`);
+      return res.status(401).json({ success: false, message: msg });
     }
 
-    // Step 4: Extract user info from page
-    const nameMatch = loginHtml.match(/Hello[\s,]*([\w\s]+)/i) || loginHtml.match(/Welcome[\s,]*([\w\s]+)/i);
-    const name = nameMatch ? nameMatch[1].trim() : email.split('@')[0];
+    // Step 2: Access Token Exchange for JSESSIONID
+    if (responseData.data && responseData.data.access_token) {
+      const token = responseData.data.access_token;
+      const oauthorizeUri = responseData.data.oauthorize_uri;
+      const finalAuthUrl = `${oauthorizeUri}&access_token=${token}`;
 
-    // Detect academic year from semester if present
-    let academicYearLevel = null;
-    let semester = null;
-    const semMatch = loginHtml.match(/semester[\s:]*(\d+)/i);
-    if (semMatch) {
-      semester = parseInt(semMatch[1], 10);
-      academicYearLevel = Math.ceil(semester / 2);
-    }
+      console.log(`[Academia] Access token received. Exchanging for JSESSIONID...`);
+      await client.get(finalAuthUrl);
 
-    // Store the session for later use
-    const sessionId = generateSessionId();
-    const authMinutes = process.env.SESSION_TIMEOUT_MINUTES
-      ? parseInt(process.env.SESSION_TIMEOUT_MINUTES, 10) : 20;
-    const expiresAt = new Date(Date.now() + authMinutes * 60 * 1000).toISOString();
+      // Fetch Timetable Page
+      let timetableHtml = '';
+      try {
+        const ttResp = await client.get(`${ACADEMIA_BASE}/srm_university/academia-academic-services/page/My_Time_Table_2023_24`);
+        timetableHtml = String(ttResp.data);
+      } catch (e: any) {
+        console.log(`[Academia] Timetable page fetch failed: ${e?.message}`);
+      }
 
-    // Store in supabase
-    try {
-      await supabase.from('application_sessions').insert({
-        id: sessionId,
-        srm_session_id: sessionId,
-        frontend_instance_id: 'academia',
-        state: 'AUTHENTICATED',
-        authenticated_at: new Date().toISOString(),
-        last_activity_at: new Date().toISOString(),
-        expires_at: expiresAt,
+      // Fetch Attendance Page
+      let attendanceHtml = '';
+      try {
+        const attResp = await client.get(`${ACADEMIA_BASE}/srm_university/academia-academic-services/page/My_Attendance`);
+        attendanceHtml = String(attResp.data);
+      } catch (e: any) {
+        console.log(`[Academia] Attendance page fetch failed: ${e?.message}`);
+      }
+
+      const sessionId = generateSessionId();
+
+      return res.json({
+        success: true,
+        user: { email: username, name: username.split('@')[0] },
+        timetableHtml,
+        attendanceHtml,
+        sessionId,
       });
-    } catch (e: any) {
-      console.log(`[Academia] Session store warning: ${e?.message}`);
     }
 
-    console.log(`[Academia] Login successful for ${email}, name: ${name}`);
-
-    return res.json({
-      success: true,
-      user: {
-        name,
-        email,
-        academicYearLevel,
-        semester,
-      },
-      schedule: {
-        timetable,
-      },
-      sessionId,
-    });
+    return res.status(401).json({ success: false, message: 'Invalid Academia credentials.' });
   } catch (err: any) {
     console.error(`[Academia] Login error:`, err?.message || err);
     return res.status(503).json({
       success: false,
-      message: 'Could not connect to Academia. ' + (err?.message || 'Please try again.'),
+      message: 'Could not connect to Academia: ' + (err?.message || 'Please try again.'),
     });
   }
 });

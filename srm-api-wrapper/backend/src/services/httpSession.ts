@@ -460,12 +460,13 @@ export async function navigateViaAjax(
   // Resolve relative URL
   let fullUrl = jspUrl;
   if (!jspUrl.startsWith('http')) {
-    // Convert relative path to absolute
-    fullUrl = jspUrl
-      .replace('../../', `${PORTAL_BASE}/`)
-      .replace('../', `${PORTAL_BASE}/`);
-    if (!fullUrl.startsWith('http')) {
-      fullUrl = `${BASE_URL}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`;
+    if (jspUrl.startsWith('/')) {
+      fullUrl = `${BASE_URL}${jspUrl}`;
+    } else if (jspUrl.startsWith('students/')) {
+      fullUrl = `${PORTAL_BASE}/${jspUrl}`;
+    } else {
+      const templateBase = `${PORTAL_BASE}/students/template/`;
+      fullUrl = new URL(jspUrl, templateBase).href;
     }
   }
 
@@ -495,21 +496,25 @@ export async function navigateViaAjax(
   };
 }
 
-/**
- * Extracts sidebar links and their formIds from the dashboard HTML.
- */
-export function extractSidebarLinks(html: string): Array<{ text: string; formId: number | null }> {
-  const $ = cheerio.load(html);
-  const links: Array<{ text: string; formId: number | null }> = [];
+export interface SidebarLink {
+  text: string;
+  formId: number | null;
+  jspUrl: string | null;
+  onclick: string;
+}
 
-  $('a[onclick]').each((_, el) => {
+export function extractSidebarLinks(html: string): SidebarLink[] {
+  const $ = cheerio.load(html);
+  const links: SidebarLink[] = [];
+
+  $('a[onclick], li[onclick], [onclick]').each((_, el) => {
     const text = $(el).text().trim().replace(/\s+/g, ' ');
     const onclick = $(el).attr('onclick') || '';
 
-    // Match funSetFormId(N)
-    const formIdMatch = onclick.match(/funSetFormId\s*\(\s*(\d+)\s*\)/);
-    // Match funShow(N, ...)
-    const showMatch = onclick.match(/funShow\s*\(\s*(\d+)/);
+    // Match funSetFormId(13) or funSetFormId('13')
+    const formIdMatch = onclick.match(/funSetFormId\s*\(\s*['"]?(\d+)['"]?\s*\)/i);
+    // Match funShow(13, ...) or funShow('13', ...)
+    const showMatch = onclick.match(/funShow\s*\(\s*['"]?(\d+)['"]?/i);
 
     const formId = formIdMatch
       ? parseInt(formIdMatch[1], 10)
@@ -517,8 +522,12 @@ export function extractSidebarLinks(html: string): Array<{ text: string; formId:
         ? parseInt(showMatch[1], 10)
         : null;
 
-    if (formId !== null && text) {
-      links.push({ text, formId });
+    // Match funShow(formId, filter, 'jspUrl') or funShow('formId', 'filter', 'jspUrl')
+    const urlMatch = onclick.match(/funShow\s*\(\s*['"]?[^,)]*['"]?\s*,\s*['"]?[^,)]*['"]?\s*,\s*['"]([^'"]+)['"]/i);
+    const jspUrl = urlMatch ? urlMatch[1] : null;
+
+    if (text || formId !== null || jspUrl !== null) {
+      links.push({ text, formId, jspUrl, onclick });
     }
   });
 

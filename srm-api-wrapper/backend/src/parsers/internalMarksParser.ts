@@ -34,11 +34,11 @@ export interface ParsedInternalMarks {
 const INTERNAL_MATCHERS = {
   semester: ['semester', 'sem'],
   academicYear: ['academic year', 'year', 'session'],
-  code: ['subject code', 'course code', 'code', 'paper code', 'sub code', 'slno', 'sl.no', 'sno'],
-  name: ['subject name', 'subject', 'course name', 'description', 'title', 'paper name', 'subject title', 'course title'],
+  code: ['subject code', 'course code', 'code', 'paper code', 'sub code', 'sub.code', 'course_code', 'sub_code', 'slno', 'sl.no', 'sno'],
+  name: ['subject name', 'subject', 'course name', 'description', 'title', 'paper name', 'subject title', 'course title', 'course_name', 'course'],
   courseType: ['course type', 'type', 'category', 'theory/lab', 'lab/theory'],
   faculty: ['faculty', 'faculty name', 'staff', 'instructor', 'teacher', 'professor'],
-  total: ['total', 'obtained', 'total mark', 'total marks', 'obtained marks', 'internal total', 'tot'],
+  total: ['mark / max. mark', 'mark/max. mark', 'mark / max.mark', 'mark/max.mark', 'mark / max mark', 'mark/max mark', 'mark / max', 'mark/max', 'internal marks', 'internal mark', 'total', 'obtained', 'total mark', 'total marks', 'obtained marks', 'internal total', 'tot', 'mark', 'marks'],
   maxMarks: ['max', 'max mark', 'max marks', 'maximum', 'maximum mark', 'maximum marks', 'max. marks'],
   status: ['status', 'remarks', 'remark', 'eligibility', 'result status', 'pass/fail', 'result'],
 };
@@ -65,6 +65,16 @@ function toNum(val: string | null | undefined): number | null {
   if (clean === '') return null;
   const n = parseFloat(clean);
   return isNaN(n) ? null : n;
+}
+
+function parseSlashMarks(val: string | null | undefined): { obtained: number | null; max: number | null } {
+  if (!val) return { obtained: null, max: null };
+  const cleanStr = val.trim();
+  if (cleanStr.includes('/')) {
+    const parts = cleanStr.split('/');
+    return { obtained: toNum(parts[0]), max: toNum(parts[1]) };
+  }
+  return { obtained: toNum(cleanStr), max: null };
 }
 
 export function parseInternalMarks(html: string): ParsedInternalMarks {
@@ -202,6 +212,11 @@ export function parseInternalMarks(html: string): ParsedInternalMarks {
         });
       }
 
+      const rawTotalVal = getCol('total');
+      const slashResult = parseSlashMarks(rawTotalVal);
+      const parsedTotal = slashResult.obtained !== null ? slashResult.obtained : toNum(rawTotalVal);
+      const parsedMaxMarks = slashResult.max !== null ? slashResult.max : toNum(getCol('maxMarks'));
+
       subjects.push({
         semester: getCol('semester') || semester,
         academicYear: getCol('academicYear') || academicYear,
@@ -210,9 +225,9 @@ export function parseInternalMarks(html: string): ParsedInternalMarks {
         courseType: getCol('courseType') || null,
         faculty: getCol('faculty') || null,
         components,
-        total: toNum(getCol('total')),
-        maxMarks: toNum(getCol('maxMarks')),
-        obtainedMarks: toNum(getCol('total')),
+        total: parsedTotal,
+        maxMarks: parsedMaxMarks,
+        obtainedMarks: parsedTotal,
         status: getCol('status') || null,
         remarks: getCol('status') || null,
         _raw: row

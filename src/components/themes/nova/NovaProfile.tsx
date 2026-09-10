@@ -28,18 +28,34 @@ export default function NovaProfile() {
   const needsPortalPrompt = isSecondYearPlus && !portalConnected;
 
   const rows = [
-    { icon: "apartment", label: "department", value: profile.dept },
+    { icon: "school", label: "institution", value: profile.institution || profile.campus },
+    { icon: "auto_stories", label: "program", value: profile.program },
+    { icon: "apartment", label: "department", value: profile.dept || profile.department },
     { icon: "calendar_month", label: "semester", value: profile.semester ? `sem ${profile.semester}` : undefined },
     { icon: "groups", label: "section", value: profile.section },
     { icon: "badge", label: "batch", value: profile.batch },
     { icon: "mail", label: "email", value: profile.email },
+    { icon: "id_card", label: "student id", value: profile.studentId },
+    { icon: "person", label: "faculty advisor", value: profile.facultyAdvisor },
+    { icon: "person_4", label: "academic advisor", value: profile.academicAdvisor },
   ].filter((r) => r.value);
 
-  const hostelRows = userData?.hostel?.hostel ? [
-    { icon: "home", label: "hostel name", value: userData.hostel.hostel.hostelName },
-    { icon: "meeting_room", label: "room number", value: userData.hostel.hostel.roomNo },
-    { icon: "event", label: "allotment date", value: userData.hostel.hostel.allotmentDate },
-  ].filter(r => r.value) : [];
+  const hostelObj = userData?.hostel?.hostel || userData?.hostel;
+  const hostelName = hostelObj?.hostelName || hostelObj?.name || hostelObj?.booking?.labelValues?.["Hostel Name"] || hostelObj?.details?.labelValues?.["Hostel Name"];
+  const roomNo = hostelObj?.roomNo || hostelObj?.room || hostelObj?.booking?.labelValues?.["Room No"] || hostelObj?.details?.labelValues?.["Room No"];
+  const allotmentDate = hostelObj?.allotmentDate || hostelObj?.booking?.labelValues?.["Allotment Date"] || hostelObj?.details?.labelValues?.["Allotment Date"];
+  const feeAmount = hostelObj?.feeAmount || hostelObj?.booking?.labelValues?.["Fee Amount"];
+
+  const hostelRows = [
+    { icon: "home", label: "hostel name", value: hostelName },
+    { icon: "meeting_room", label: "room number", value: roomNo },
+    { icon: "event", label: "allotment date", value: allotmentDate },
+    { icon: "payments", label: "fee amount", value: feeAmount },
+  ].filter(r => r.value);
+
+  const displayHostelRows = hostelRows.length > 0 ? hostelRows : [
+    { icon: "home", label: "accommodation status", value: "Day Scholar / No Active Hostel Allotment" }
+  ];
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -153,28 +169,27 @@ export default function NovaProfile() {
         </section>
       )}
 
-      {hostelRows.length > 0 && (
-        <section className="px-5 mt-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] mb-1.5" style={{ ...mono(), color: NOVA.lime }}>
-            hostel accommodation
-          </p>
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${NOVA.border}` }}>
-            {hostelRows.map((r, i) => (
-              <div
-                key={r.label}
-                className="flex items-center gap-4 px-4 py-3.5"
-                style={{ background: NOVA.panel, borderBottom: i < hostelRows.length - 1 ? `1px solid ${NOVA.border}` : "none" }}
-              >
-                <span className="material-symbols-outlined text-[18px]" style={{ color: NOVA.blue }}>{r.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: NOVA.faint }}>{r.label}</p>
-                  <p className="text-[13px] font-bold truncate mt-0.5" style={{ color: NOVA.text }}>{r.value}</p>
-                </div>
+      {/* Hostel Accommodation Section */}
+      <section className="px-5 mt-6">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] mb-1.5" style={{ ...mono(), color: NOVA.lime }}>
+          hostel accommodation
+        </p>
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${NOVA.border}` }}>
+          {displayHostelRows.map((r, i) => (
+            <div
+              key={r.label}
+              className="flex items-center gap-4 px-4 py-3.5"
+              style={{ background: NOVA.panel, borderBottom: i < displayHostelRows.length - 1 ? `1px solid ${NOVA.border}` : "none" }}
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ color: NOVA.blue }}>{r.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: NOVA.faint }}>{r.label}</p>
+                <p className="text-[13px] font-bold truncate mt-0.5" style={{ color: NOVA.text }}>{r.value}</p>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="px-5 mt-6">
         <button

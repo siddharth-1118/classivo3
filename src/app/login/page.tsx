@@ -25,11 +25,24 @@ export default function LoginRoute() {
   }, [router]);
 
   const handleLoginSuccess = (data: any) => {
-    setUserData(data);
-    localStorage.setItem("classivo_data", JSON.stringify(data));
+    const safeProfile = (data && typeof data === "object" && data.profile && typeof data.profile === "object" && !Array.isArray(data.profile))
+      ? data.profile
+      : {
+          name: data?.name || data?.netId || data?.registrationNumber || "Student",
+          registrationNumber: data?.registrationNumber || data?.registerNumber || data?.netId || "",
+          email: data?.email || (data?.netId ? `${data.netId}@srmist.edu.in` : ""),
+        };
+
+    const normalizedData = {
+      ...(data || {}),
+      profile: safeProfile,
+    };
+
+    setUserData(normalizedData);
+    localStorage.setItem("classivo_data", JSON.stringify(normalizedData));
     EncryptionUtils.setSessionCookie();
     
-    const source = data.source || "academia";
+    const source = normalizedData.source || "srm_portal";
     const now = new Date().toISOString();
     setConnectionSource(source);
     setConnectedAt(now);
