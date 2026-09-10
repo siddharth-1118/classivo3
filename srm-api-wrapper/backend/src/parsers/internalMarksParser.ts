@@ -179,8 +179,23 @@ export function parseInternalMarks(html: string): ParsedInternalMarks {
         return key ? row[key] : undefined;
       };
 
-      const code = getCol('code');
-      const name = getCol('name');
+      let code = getCol('code');
+      let name = getCol('name');
+
+      // Fallback: If code is missing, scan row cells for SRM course code pattern (e.g., 21MAB101T, 21CYB101J)
+      if (!code) {
+        const rowValues = Object.values(row);
+        const codeCell = rowValues.find(v => /^[0-9]{2}[A-Z]{3,4}[0-9]{3}[A-Z0-9]?$/i.test(v.trim()));
+        if (codeCell) code = codeCell.trim();
+      }
+
+      // Fallback: If name is missing, scan for non-numeric title cell
+      if (!name) {
+        const rowValues = Object.values(row);
+        const nameCell = rowValues.find(v => v !== code && v.length > 3 && !v.includes('/') && !/^\d+$/.test(v) && v.toLowerCase() !== 'view');
+        if (nameCell) name = nameCell.trim();
+      }
+
       if (!code && !name) continue;
 
       // Skip repeated header rows
@@ -197,10 +212,9 @@ export function parseInternalMarks(html: string): ParsedInternalMarks {
         components[key] = toNum(val);
       });
 
-      // If componentCols is empty, we can harvest any numeric columns between the code/name and the total column
+      // If componentCols is empty, harvest numeric columns
       if (componentCols.length === 0) {
         headers.forEach((h, idx) => {
-          // Skip standard fields
           const isStandard = Object.values(INTERNAL_MATCHERS).some(keys => matchColumn(h, keys));
           if (!isStandard) {
             const val = row[h];
@@ -212,8 +226,25 @@ export function parseInternalMarks(html: string): ParsedInternalMarks {
         });
       }
 
-      const rawTotalVal = getCol('total');
-      const slashResult = parseSlashMarks(rawTotalVal);
+      let rawTotalVal = getCol('total');
+      let slashResult = parseSlashMarks(rawTotalVal);
+
+      // Fallback: If no slash total was found in total column, scan row cells right-to-left for any slash score (e.g. 9.00 / 10.00)
+      if (slashResult.obtained === null) {
+        const rowValues = Object.values(row);
+        for (let i = rowValues.length - 1; i >= 0; i--) {
+          const cellVal = rowValues[i];
+          if (cellVal && cellVal.includes('/')) {
+            const res = parseSlashMarks(cellVal);
+            if (res.obtained !== null) {
+              slashResult = res;
+              rawTotalVal = cellVal;
+              break;
+            }
+          }
+        }
+      }
+
       const parsedTotal = slashResult.obtained !== null ? slashResult.obtained : toNum(rawTotalVal);
       const parsedMaxMarks = slashResult.max !== null ? slashResult.max : toNum(getCol('maxMarks'));
 
