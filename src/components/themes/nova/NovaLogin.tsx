@@ -282,11 +282,24 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
         const srmSchedule = payload.schedule || {};
         const academiaSchedule = yearPromptData?.schedule || {};
         const hasSRMTimetable = srmSchedule && typeof srmSchedule === "object" && Object.keys(srmSchedule).length > 0;
+        const hasAcademiaAttendance = Array.isArray(yearPromptData?.attendance) && yearPromptData.attendance.length > 0;
+        const hasPortalAttendance = Array.isArray(payload.attendance) && payload.attendance.length > 0;
+
+        const hasAcademiaMarks = Array.isArray(yearPromptData?.marks) && yearPromptData.marks.length > 0;
+        const hasPortalMarks = Array.isArray(payload.marks) && payload.marks.length > 0;
+
+        const hasAcademiaCalendar = Array.isArray(yearPromptData?.academicCalendar) && yearPromptData.academicCalendar.length > 0;
+        const hasPortalCalendar = Array.isArray(payload.academicCalendar) && payload.academicCalendar.length > 0;
+
         const mergedData = {
           ...yearPromptData,
-          attendance: payload.attendance || yearPromptData?.attendance || [],
-          marks: payload.marks || yearPromptData?.marks || [],
-          academicCalendar: payload.academicCalendar || yearPromptData?.academicCalendar || [],
+          profile: {
+            ...(payload.profile || {}),
+            ...(yearPromptData?.profile || {}),
+          },
+          attendance: hasAcademiaAttendance ? yearPromptData.attendance : (hasPortalAttendance ? payload.attendance : []),
+          marks: hasAcademiaMarks ? yearPromptData.marks : (hasPortalMarks ? payload.marks : []),
+          academicCalendar: hasAcademiaCalendar ? yearPromptData.academicCalendar : (hasPortalCalendar ? payload.academicCalendar : []),
           timetable: hasSRMTimetable ? (payload.timetable || srmSchedule) : (yearPromptData?.timetable || academiaSchedule),
           schedule: hasSRMTimetable ? srmSchedule : academiaSchedule,
           portalConnected: true,
