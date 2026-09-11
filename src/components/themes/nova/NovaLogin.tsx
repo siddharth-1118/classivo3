@@ -459,13 +459,16 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
           setYearDetection(data.yearDetection);
           localStorage.setItem("classivo_year_detection", JSON.stringify(data.yearDetection));
         }
+        const academiaPayload = { ...data, source: "academia", portalConnected: false };
+        setConnectionSource("academia");
+        localStorage.setItem("classivo_connection_source", "academia");
         if (yearLevel >= 2) {
-          setYearPromptData(data);
+          setYearPromptData(academiaPayload);
           setShowYearPrompt(true);
           setLoading(false);
           return;
         }
-        onLogin(data);
+        onLogin(academiaPayload);
       } catch (err: any) {
         if (err?.type === "CAPTCHA_REQUIRED" || err?.captcha_required) {
           setCaptchaImage(err.image || err.captcha_image);

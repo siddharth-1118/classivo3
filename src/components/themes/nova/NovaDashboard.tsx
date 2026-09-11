@@ -206,7 +206,7 @@ export default function NovaDashboard({
       )}
 
       {/* Dual Portal Connection Prompt Banner */}
-      {connectionSource === "academia" && !(data as any)?.portalConnected && (
+      {(connectionSource === "academia" || (data as any)?.source === "academia") && !(data as any)?.portalConnected && (
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

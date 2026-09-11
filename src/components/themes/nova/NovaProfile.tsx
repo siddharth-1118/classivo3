@@ -85,8 +85,8 @@ export default function NovaProfile() {
   const semester = profile.semester ? parseInt(String(profile.semester), 10) : null;
   const detectedYear = semester ? Math.ceil(semester / 2) : academicYearLevel;
   const isSecondYearPlus = (detectedYear || 1) >= 2;
-  const portalConnected = connectionSource === "srm_portal" || userData?.portalConnected === true;
-  const needsPortalPrompt = isSecondYearPlus && !portalConnected;
+  const portalConnected = connectionSource === "srm_portal" || (userData as any)?.portalConnected === true;
+  const needsPortalPrompt = !portalConnected;
 
   // Multi-source Hostel object extraction
   const uData: any = userData || {};

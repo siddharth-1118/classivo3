@@ -222,7 +222,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             username: fullUsername,
             password,
           });
-          onLogin(payload);
+          onLogin({ ...payload, source: "srm_portal", portalConnected: true });
           return;
         }
 
@@ -292,7 +292,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         return;
       }
 
-      onLogin(academiaData);
+      onLogin({ ...academiaData, source: "academia", portalConnected: false });
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred during sign in.");
       setLoading(false);

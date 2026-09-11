@@ -42,7 +42,7 @@ export default function LoginRoute() {
     localStorage.setItem("classivo_data", JSON.stringify(normalizedData));
     EncryptionUtils.setSessionCookie();
     
-    const source = normalizedData.source || "srm_portal";
+    const source = normalizedData.source || localStorage.getItem("classivo_connection_source") || (normalizedData.portalConnected ? "srm_portal" : "academia");
     const now = new Date().toISOString();
     setConnectionSource(source);
     setConnectedAt(now);
