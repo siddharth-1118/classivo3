@@ -238,7 +238,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
   const handlePortalConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!portalRegNo || !portalPassword) {
-      setPortalConnectError("Please enter your registration number and password.");
+      setPortalConnectError("Please enter your email address and password.");
       return;
     }
     if (!portalCaptchaInput.trim()) {
@@ -609,10 +609,10 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
                 </p>
               </div>
 
-              {/* Email / Registration Number */}
+              {/* Email / Email Address */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-[0.15em] mb-2" style={{ ...mono, color: "#84cc16" }}>
-                  {isAcademia ? "Email" : "Registration Number"}
+                  {isAcademia ? "Email" : "Email Address"}
                 </label>
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -620,7 +620,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
                     type={isAcademia ? "email" : "text"}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder={isAcademia ? "student@example.com" : "RA2311030017"}
+                    placeholder={isAcademia ? "student@example.com" : "student@srmist.edu.in"}
                     disabled={loading}
                     className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:text-gray-600"
                     style={{ color: "#f4f4f4", ...mono }}
@@ -839,15 +839,15 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
               </div>
 
               <form onSubmit={handlePortalConnect} className="px-6 pb-6 space-y-4">
-                {/* Registration Number */}
+                {/* Email Address */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-[0.15em] mb-2" style={{ ...mono, color: "#84cc16" }}>
-                    Registration Number
+                    Email Address
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
                     style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <input type="text" value={portalRegNo} onChange={(e) => setPortalRegNo(e.target.value)}
-                      placeholder="RA2311030017" disabled={portalConnecting}
+                      placeholder="student@srmist.edu.in" disabled={portalConnecting}
                       className="w-full bg-transparent text-[14px] font-medium outline-none placeholder:text-gray-600"
                       style={{ color: "#f4f4f4", ...mono }} />
                   </div>

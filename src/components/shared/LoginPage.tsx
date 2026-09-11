@@ -158,7 +158,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       setError(
         activeTab === "academia"
           ? "Please fill in your NetID and academia password."
-          : "Please fill in your registration number and portal password."
+          : "Please fill in your email address and portal password."
       );
       return;
     }
@@ -442,12 +442,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               {/* NetID / RegNo Input */}
               <div className="space-y-2 group">
                 <label className="font-label-caps text-[12px] font-bold text-cyan-300/80 block uppercase tracking-wider">
-                  {isAcademia ? "username (netid)" : "registration number"}
+                  {isAcademia ? "username (netid)" : "email address"}
                 </label>
                 <div className="relative flex items-center">
                   <input 
                     className="w-full bg-transparent border-0 border-b border-outline-variant/40 py-2.5 pr-28 text-on-surface focus:ring-0 focus:border-cyan-400 transition-all placeholder:text-outline/40 font-body-lg text-[15px] outline-none disabled:opacity-55" 
-                    placeholder={isAcademia ? "NetID" : "RA231103..."} 
+                    placeholder={isAcademia ? "NetID" : "student@srmist.edu.in"} 
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
