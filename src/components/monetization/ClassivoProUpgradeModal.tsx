@@ -51,9 +51,43 @@ export function ClassivoProUpgradeModal({
 
   const handleCopyUpi = () => {
     Haptics.medium();
-    navigator.clipboard.writeText("9866707883@ybl");
+    try {
+      navigator.clipboard.writeText("9866707883@ybl");
+    } catch (e) {}
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 3000);
+  };
+
+  const handlePayWithPhonePe = (targetTierId?: SubscriptionTierId | null) => {
+    Haptics.heavy();
+    handleCopyUpi();
+    const activeTier = targetTierId || pendingTier || "pro";
+    const tier = SUBSCRIPTION_TIERS[activeTier];
+    const price = billingCycle === "yearly" ? tier?.priceYearlyINR : tier?.priceMonthlyINR;
+
+    // Clean parameters without 'tn' to avoid PhonePe payee mismatch error
+    const upiUrl = `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
+    const phonePeScheme = `phonepe://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
+    const androidIntent = `intent://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR#Intent;scheme=upi;package=com.phonepe.app;end`;
+
+    const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent || "");
+    const isIOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+
+    try {
+      if (isAndroid) {
+        window.location.href = androidIntent;
+      } else if (isIOS) {
+        window.location.href = phonePeScheme;
+      } else {
+        window.open(upiUrl, "_self");
+      }
+    } catch (e) {
+      try {
+        window.open(upiUrl, "_self");
+      } catch (err) {
+        console.warn("UPI link launch notice:", err);
+      }
+    }
   };
 
   const handleSelectTier = (tierId: SubscriptionTierId) => {
@@ -64,10 +98,11 @@ export function ClassivoProUpgradeModal({
       return;
     }
 
-    // Directly open payment verification modal without forcing broken deep link popup
+    // Launch PhonePe directly and open verification modal
     setPendingTier(tierId);
     setVerificationError(null);
     setUtrInput("");
+    handlePayWithPhonePe(tierId);
   };
 
   const handleVerifyPayment = async () => {
@@ -194,16 +229,20 @@ export function ClassivoProUpgradeModal({
                 </p>
               </div>
 
-              {/* Action Button: 1-Tap Copy UPI ID */}
-              <div>
+              {/* Action Buttons: PhonePe App Launcher & Copy UPI ID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => handlePayWithPhonePe()}
+                  className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:brightness-110 text-white font-extrabold text-xs flex items-center justify-center gap-2 border border-purple-400/40 shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all active:scale-[0.98]"
+                >
+                  <ArrowRight className="w-4 h-4 text-purple-300" />
+                  <span>Open PhonePe App Directly</span>
+                </button>
                 <button
                   onClick={handleCopyUpi}
-                  className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:brightness-110 text-black font-black text-sm flex items-center justify-center gap-3 border border-amber-300/50 shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all active:scale-[0.98]"
+                  className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/50 shadow-md transition-all active:scale-[0.98]"
                 >
-                  <span className="text-base">{copiedUpi ? "✓" : "📋"}</span>
-                  <span className="tracking-wide">
-                    {copiedUpi ? "COPIED (9866707883@ybl) TO CLIPBOARD!" : "1-TAP COPY UPI ID: 9866707883@ybl"}
-                  </span>
+                  <span>{copiedUpi ? "✓ Copied: 9866707883@ybl" : "📋 Copy UPI ID: 9866707883@ybl"}</span>
                 </button>
               </div>
 
