@@ -76,10 +76,7 @@ export function ClassivoProUpgradeModal({
       return;
     }
 
-    // Try auto-opening UPI app with corrected payee name
-    handleOpenUpiApp(tierId);
-    
-    // Move to verification step
+    // Directly open payment verification modal without forcing broken deep link popup
     setPendingTier(tierId);
     setVerificationError(null);
     setUtrInput("");
@@ -209,20 +206,20 @@ export function ClassivoProUpgradeModal({
                 </p>
               </div>
 
-              {/* Action Buttons: Open App & Copy UPI ID */}
+              {/* Action Buttons: Copy UPI ID & Optional Open App */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  onClick={() => handleOpenUpiApp(pendingTier)}
-                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 border border-purple-400/30 shadow-lg transition-all"
+                  onClick={handleCopyUpi}
+                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/40 shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all"
                 >
-                  <ArrowRight className="w-4 h-4" />
-                  <span>Open PhonePe / UPI App</span>
+                  <span>{copiedUpi ? "✓ Copied 9866707883@ybl!" : "📋 Copy UPI ID (9866707883@ybl)"}</span>
                 </button>
                 <button
-                  onClick={handleCopyUpi}
-                  className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 border border-amber-400/30 transition-all"
+                  onClick={() => handleOpenUpiApp(pendingTier)}
+                  className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-white/80 font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all"
                 >
-                  {copiedUpi ? "✓ Copied: 9866707883@ybl" : "📋 Copy UPI ID: 9866707883@ybl"}
+                  <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Try Auto-Open PhonePe</span>
                 </button>
               </div>
 
