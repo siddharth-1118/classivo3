@@ -62,8 +62,8 @@ export default function NovaConnections({ onOpenSettings }: { onOpenSettings?: (
 
   const isFirstYear = academicYearLevel === 1;
   const needsAcademia = (academicYearLevel || 1) >= 2;
-  const academiaConnected = connectionSource === "academia" || userData?.source === "academia";
-  const portalConnected = connectionSource === "srm_portal" || userData?.portalConnected === true || (userData && !!connectionSource);
+  const academiaConnected = connectionSource === "academia" || (userData as any)?.source === "academia" || (userData as any)?.hasAcademiaData === true;
+  const portalConnected = connectionSource === "srm_portal" || (userData as any)?.portalConnected === true || (userData as any)?.hasPortalData === true;
 
   // Decrypted credentials username / registration number
   const linkedAccountIdentifier = useMemo(() => {

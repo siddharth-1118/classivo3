@@ -205,6 +205,50 @@ export default function NovaDashboard({
         </motion.section>
       )}
 
+      {/* Dual Portal Connection Prompt Banner */}
+      {connectionSource === "academia" && !(data as any)?.portalConnected && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRINGS.smooth}
+          className="px-5 mt-4 relative z-10"
+        >
+          <div
+            className="rounded-2xl p-4 flex items-center justify-between gap-3 relative overflow-hidden backdrop-blur-2xl transition-all"
+            style={{
+              ...carbonGlass(NOVA.cyan, "40"),
+              borderLeft: `4px solid ${NOVA.cyan}`,
+            }}
+          >
+            <button
+              onClick={() => { Haptics.light(); router.push("/connections"); }}
+              className="flex items-center gap-3 flex-1 text-left min-w-0 transition-all active:scale-[0.99]"
+            >
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-lg" style={{ background: `${NOVA.cyan}22`, border: `1px solid ${NOVA.cyan}55` }}>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: NOVA.cyan }}>shield</span>
+              </span>
+              <div className="min-w-0">
+                <h4 className="text-[13px] font-black tracking-tight leading-none" style={{ color: NOVA.text }}>
+                  Link SRM Student Portal
+                </h4>
+                <p className="text-[10px] font-bold mt-1 leading-tight truncate" style={{ color: NOVA.muted }}>
+                  Sync Hostel Allotment Order, Fee Receipts &amp; Official Profile
+                </p>
+              </div>
+            </button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => { Haptics.light(); router.push("/connections"); }}
+              className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shrink-0"
+              style={{ ...mono(), background: NOVA.cyan, color: NOVA.ink, boxShadow: `0 0 14px ${NOVA.cyan}44` }}
+            >
+              Link Now
+            </motion.button>
+          </div>
+        </motion.section>
+      )}
+
       {/* Today: Day Order + Next Class */}
       <Section n="01" label="today's schedule">
         <div className="grid grid-cols-5 gap-3">
