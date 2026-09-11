@@ -71,12 +71,20 @@ export const getScheduleStatus = (
 
 export const calculateOverallAttendance = (attendance: any[]) => {
   if (!attendance || !Array.isArray(attendance) || attendance.length === 0) return 0;
-  const totalConducted = attendance.reduce(
-    (acc, curr) => acc + curr.conducted,
-    0,
-  );
-  const totalAbsent = attendance.reduce((acc, curr) => acc + curr.absent, 0);
-  const totalPresent = totalConducted - totalAbsent;
+  let totalConducted = 0;
+  let totalPresent = 0;
+
+  attendance.forEach((curr) => {
+    const conducted = parseInt(curr?.conducted ?? curr?.classesHeld ?? curr?.held ?? curr?.totalClasses ?? "0", 10) || 0;
+    const presentRaw = curr?.present ?? curr?.classesAttended ?? curr?.attended;
+    const absentRaw = parseInt(curr?.absent || "0", 10) || 0;
+    const present = presentRaw !== undefined && presentRaw !== null
+      ? (parseInt(presentRaw, 10) || 0)
+      : Math.max(0, conducted - absentRaw);
+    totalConducted += conducted;
+    totalPresent += present;
+  });
+
   return totalConducted === 0
     ? 0
     : Math.round((totalPresent / totalConducted) * 100);
@@ -86,13 +94,28 @@ export const getCriticalAttendance = (attendance: any[]) => {
   if (!attendance || !Array.isArray(attendance)) return [];
   return attendance
     .map((subj) => {
-      const present = subj.conducted - subj.absent;
-      const percent =
-        subj.conducted === 0 ? 0 : (present / subj.conducted) * 100;
-      const req = Math.ceil(3 * subj.conducted - 4 * present);
-      const displayTitle = subj.title || subj.course || "Subject";
+      const conducted = parseInt(subj?.conducted ?? subj?.classesHeld ?? subj?.held ?? subj?.totalClasses ?? "0", 10) || 0;
+      const presentRaw = subj?.present ?? subj?.classesAttended ?? subj?.attended;
+      const absentRaw = parseInt(subj?.absent || "0", 10) || 0;
+      const present = presentRaw !== undefined && presentRaw !== null
+        ? (parseInt(presentRaw, 10) || 0)
+        : Math.max(0, conducted - absentRaw);
+
+      const rawPct = subj?.percentage ?? subj?.percent;
+      let percent = 0;
+      if (rawPct !== undefined && rawPct !== null && rawPct !== "") {
+        percent = parseFloat(String(rawPct).replace("%", "").trim()) || 0;
+      } else if (conducted > 0) {
+        percent = (present / conducted) * 100;
+      }
+
+      const req = Math.ceil(3 * conducted - 4 * present);
+      const displayTitle = subj.title || subj.courseName || subj.courseTitle || subj.course || "Subject";
       return {
         ...subj,
+        conducted,
+        present,
+        absent: Math.max(0, conducted - present),
         percent,
         required: req > 0 ? req : 0,
         displayName: displayTitle,

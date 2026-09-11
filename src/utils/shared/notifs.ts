@@ -262,3 +262,87 @@ async function registerNativePushInBackground() {
     }
   }, 100);
 }
+
+/**
+ * Schedules local background notifications for upcoming timetable slots.
+ * Works 100% offline and without running the server once registered on device.
+ */
+export const scheduleLocalTimetableNotifications = async (userData: any): Promise<void> => {
+  if (typeof window === "undefined") return;
+  
+  try {
+    const notifPermission = await requestNotificationPermission();
+    if (!notifPermission) return;
+
+    const timetable = userData?.timetable || userData?.schedule || userData?.effectiveSchedule;
+    if (!timetable || typeof timetable !== "object") return;
+
+    // Clear previous scheduled timetable alerts to avoid duplicates
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length > 0) {
+          await LocalNotifications.cancel(pending);
+        }
+      } catch {}
+    }
+
+    const today = new Date();
+    const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const currentDayName = daysOfWeek[today.getDay()];
+
+    const todaySlots = timetable[currentDayName] || [];
+    if (Array.isArray(todaySlots)) {
+      todaySlots.forEach(async (slot: any, idx: number) => {
+        const timeStr = slot.time || slot.slotTime || "";
+        if (!timeStr) return;
+
+        const startTimePart = timeStr.split("-")[0]?.trim();
+        if (!startTimePart) return;
+
+        const parts = startTimePart.split(":");
+        if (parts.length < 2) return;
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
+        if (isNaN(hours) || isNaN(minutes)) return;
+
+        const classTime = new Date();
+        classTime.setHours(hours, minutes, 0, 0);
+
+        // Alert 10 minutes before class
+        const alertTime = new Date(classTime.getTime() - 10 * 60 * 1000);
+        if (alertTime > new Date()) {
+          const courseName = slot.course || slot.name || slot.title || "Class";
+          const room = slot.room ? `📍 Room: ${slot.room}` : "";
+          const title = `🔔 Upcoming Class: ${courseName}`;
+          const body = `Class starts in 10 mins (${startTimePart}). ${room}`;
+
+          if (Capacitor.isNativePlatform()) {
+            try {
+              await LocalNotifications.schedule({
+                notifications: [
+                  {
+                    id: 1000 + idx,
+                    title,
+                    body,
+                    schedule: { at: alertTime },
+                    channelId: "updates",
+                  },
+                ],
+              });
+            } catch {}
+          } else if ("serviceWorker" in navigator) {
+            const delayMs = alertTime.getTime() - Date.now();
+            if (delayMs > 0 && delayMs < 24 * 60 * 60 * 1000) {
+              setTimeout(() => {
+                sendNotification(title, body, `class-slot-${idx}`);
+              }, delayMs);
+            }
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("scheduleLocalTimetableNotifications failed silently:", e);
+  }
+};

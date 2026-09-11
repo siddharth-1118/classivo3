@@ -38,18 +38,35 @@ export const getBaseAttendance = (rawAttendance: any[]) => {
   if (!rawAttendance || !Array.isArray(rawAttendance)) return [];
   return rawAttendance
     .map((subject, index) => {
-      const pct = parseFloat(subject?.percent || "0");
-      const category = pct < 75 ? "cooked" : pct >= 85 ? "safe" : "danger";
+      const conducted = parseInt(subject?.conducted ?? subject?.classesHeld ?? subject?.held ?? subject?.totalClasses ?? "0", 10) || 0;
+      const presentRaw = subject?.present ?? subject?.classesAttended ?? subject?.attended;
+      const absentRaw = parseInt(subject?.absent || "0", 10) || 0;
+      
+      const present = presentRaw !== undefined && presentRaw !== null
+        ? (parseInt(presentRaw, 10) || 0)
+        : Math.max(0, conducted - absentRaw);
+      
+      const absent = Math.max(0, conducted - present);
+
+      const rawPct = subject?.percentage ?? subject?.percent;
+      let pctVal = 0;
+      if (rawPct !== undefined && rawPct !== null && rawPct !== "") {
+        pctVal = parseFloat(String(rawPct).replace("%", "").trim()) || 0;
+      } else if (conducted > 0) {
+        pctVal = Math.round((present / conducted) * 100);
+      }
+
+      const category = pctVal < 75 ? "cooked" : pctVal >= 85 ? "safe" : "danger";
       const list = flavorText.header?.[category] ||
         flavorText.header?.danger || ["..."];
       const stableBadge = list[Math.floor(index % list.length)].toLowerCase();
       const safeTitle =
-        subject.title || subject.courseTitle || "Unknown Subject";
+        subject.title || subject.courseName || subject.courseTitle || subject.course || "Unknown Subject";
       const slot = (subject.slot || "").toUpperCase();
-      const code = String(subject?.code || "").trim();
+      const code = String(subject?.code || subject?.courseCode || "").trim();
 
       const attCategory =
-        (subject.category || "").trim() ||
+        (subject.category || subject.courseType || "").trim() ||
         (slot.startsWith("P") || slot.startsWith("L") ? "Practical" : "Theory");
       const isPractical = attCategory.toLowerCase() === "practical";
 
@@ -58,11 +75,10 @@ export const getBaseAttendance = (rawAttendance: any[]) => {
         title: safeTitle,
         rawTitle: safeTitle,
         code: code,
-        percentage: String(subject?.percent || "0"),
-        conducted: parseInt(subject?.conducted || "0"),
-        present:
-          parseInt(subject?.conducted || "0") -
-          parseInt(subject?.absent || "0"),
+        percentage: pctVal.toFixed(1),
+        conducted: conducted,
+        present: present,
+        absent: absent,
         badge: category,
         tagline: stableBadge,
         slot: slot,

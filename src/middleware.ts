@@ -41,10 +41,20 @@ export function middleware(request: NextRequest) {
   );
 
   const origin = request.headers.get("origin");
-  if (origin) {
+  const host = request.headers.get("host");
+  const isAllowedOrigin =
+    !origin ||
+    origin === `http://${host}` ||
+    origin === `https://${host}` ||
+    origin === "capacitor://localhost" ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:");
+
+  if (origin && isAllowedOrigin) {
     response.headers.set("Access-Control-Allow-Origin", origin);
     response.headers.set("Vary", "Origin");
-  } else {
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+  } else if (!origin) {
     response.headers.set("Access-Control-Allow-Origin", "*");
   }
 
@@ -56,7 +66,6 @@ export function middleware(request: NextRequest) {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Requested-With"
   );
-  response.headers.set("Access-Control-Allow-Credentials", "true");
   response.headers.set("Access-Control-Max-Age", "86400");
 
   if (request.method === "OPTIONS") {

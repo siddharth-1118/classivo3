@@ -12,7 +12,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
 import { usePathname } from "next/navigation";
-import { requestNotificationPermission } from "@/utils/shared/notifs";
+import { requestNotificationPermission, scheduleLocalTimetableNotifications } from "@/utils/shared/notifs";
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -23,6 +23,10 @@ export default function AppWrapper({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     requestNotificationPermission();
+
+    if (userData) {
+      scheduleLocalTimetableNotifications(userData);
+    }
 
     if (Capacitor.isNativePlatform()) {
       let localListener: any;

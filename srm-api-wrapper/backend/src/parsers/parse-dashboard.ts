@@ -32,7 +32,7 @@ export const DASHBOARD_KV_SELECTORS = {
   creditsEarned: ["earned credits", "credits earned", "earned", "total earned"],
   creditsRegistered: ["total credits", "credits registered", "registered", "attempted credits"],
   hostelStatus: ["hostel status", "accommodation status", "hosteller/dayscholar"],
-  hostelName: ["hostel name", "hostel", "hostel block name"],
+  hostelName: ["hostel name", "hostel", "hostel block name", "hostel / block name", "hostel/block name", "hostel & block name", "block name", "hostel block", "hall of residence", "hall name"],
 } as const;
 
 export function parseDashboard(html: string): DashboardData {
@@ -69,11 +69,31 @@ export function parseDashboard(html: string): DashboardData {
   const hostelNameRaw = lookup(DASHBOARD_KV_SELECTORS.hostelName);
 
   let hostelStatus: string | undefined;
-  if (hostelStatusRaw) hostelStatus = hostelStatusRaw;
-  else if (roomNo || hostelNameRaw) hostelStatus = "Hosteller";
-  else hostelStatus = undefined;
+  if (hostelStatusRaw) {
+    // Normalize common SRM values
+    const lower = hostelStatusRaw.toLowerCase();
+    if (lower.includes('hostel') || lower === 'hosteller') {
+      hostelStatus = 'Hosteller';
+    } else if (lower.includes('day') || lower.includes('dayscholar') || lower === 'day scholar') {
+      hostelStatus = 'Day Scholar';
+    } else {
+      hostelStatus = hostelStatusRaw;
+    }
+  } else if (roomNo || hostelNameRaw) {
+    hostelStatus = 'Hosteller';
+  } else {
+    // Try to find hostel status from full page text as last resort
+    const bodyText = $('body').text().toLowerCase();
+    if (bodyText.includes('hosteller') || bodyText.includes('hostel allotment') || bodyText.includes('hostel name')) {
+      hostelStatus = 'Hosteller';
+    } else if (bodyText.includes('day scholar') || bodyText.includes('dayscholar')) {
+      hostelStatus = 'Day Scholar';
+    } else {
+      hostelStatus = undefined;
+    }
+  }
 
-  const hasHostelRoom = roomNo || hostelNameRaw;
+  const hasHostelRoom = roomNo || hostelNameRaw || (hostelStatus === 'Hosteller');
   const hostelRoomDetails = hasHostelRoom
     ? {
         hostelName: hostelNameRaw || undefined,

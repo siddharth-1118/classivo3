@@ -15,6 +15,15 @@ import { useDashboardCalendar } from "@/hooks/useDashboardCalendar";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useApp } from "@/context/AppContext";
 import { Haptics } from "@/utils/shared/haptics";
+import { useMonetization } from "@/hooks/useMonetization";
+import { AttendanceBunkShieldBadge } from "@/components/monetization/AttendanceBunkShieldBadge";
+import { AttendanceBunkShieldModal } from "@/components/monetization/AttendanceBunkShieldModal";
+import { TrustScoreStatusPill } from "@/components/monetization/TrustScoreStatusPill";
+import { TrustScoreModal } from "@/components/monetization/TrustScoreModal";
+import { StudentReferralCard } from "@/components/monetization/StudentReferralCard";
+import { StudentReferralModal } from "@/components/monetization/StudentReferralModal";
+import { ClassivoProUpgradeCard } from "@/components/monetization/ClassivoProUpgradeCard";
+import { ClassivoProUpgradeModal } from "@/components/monetization/ClassivoProUpgradeModal";
 
 const BEZIER = [0.34, 0.15, 0.16, 0.96] as const;
 
@@ -55,6 +64,7 @@ export default function Dashboard({
 }) {
   const router = useRouter();
   const { customDisplayName } = useApp();
+  const monetization = useMonetization();
 
   // State for dismissible APK banner
   const [showApkBanner, setShowApkBanner] = useState(false);
@@ -149,9 +159,9 @@ export default function Dashboard({
   const courseMap = useMemo(() => buildCourseMap(data), [data]);
 
   // Overall Attendance
-  const { overallAttendance, attendanceSafe, criticalMsg } = useMemo(() => {
+  const { overallAttendance, totalC = 0, totalP = 0, attendanceSafe, criticalMsg } = useMemo(() => {
     if (!data?.attendance || data.attendance.length === 0)
-      return { overallAttendance: 0, attendanceSafe: true, criticalMsg: "No attendance data" };
+      return { overallAttendance: 0, totalC: 0, totalP: 0, attendanceSafe: true, criticalMsg: "No attendance data" };
     const base = getBaseAttendance(data.attendance);
     if (base.length === 0)
       return { overallAttendance: 0, attendanceSafe: true, criticalMsg: "No attendance data" };
@@ -166,6 +176,8 @@ export default function Dashboard({
     const overallPct = totalC === 0 ? 0 : parseFloat(((totalP / totalC) * 100).toFixed(1));
     return {
       overallAttendance: overallPct,
+      totalC,
+      totalP,
       attendanceSafe: !hasCritical,
       criticalMsg: hasCritical ? `${minMargin} classes to recover` : `${minMargin} till critical`,
     };
@@ -176,10 +188,10 @@ export default function Dashboard({
     return processAndSortMarks(data?.marks || [], courseMap);
   }, [data?.marks, courseMap]);
 
-  const { overallMarks, marksSafe, marksMsg } = useMemo(() => {
+  const { overallMarks, marksGot, marksMax, marksSafe, marksMsg } = useMemo(() => {
     const validMarks = sortedMarks.filter((m) => !m.isNA && m.totalMax !== undefined && m.totalMax > 0);
     if (validMarks.length === 0) {
-      return { overallMarks: "—", marksSafe: true, marksMsg: "No marks data" };
+      return { overallMarks: "—", marksGot: 0, marksMax: 0, marksSafe: true, marksMsg: "No marks data" };
     }
     let totalGotSum = 0;
     let totalMaxSum = 0;
@@ -197,6 +209,8 @@ export default function Dashboard({
     const avgPct = totalMaxSum === 0 ? 0 : parseFloat(((totalGotSum / totalMaxSum) * 100).toFixed(1));
     return {
       overallMarks: avgPct,
+      marksGot: totalGotSum,
+      marksMax: totalMaxSum,
       marksSafe: !hasCritical,
       marksMsg: hasCritical ? `${criticalCount} subjects below 50%` : "All subjects above 50%",
     };
@@ -510,25 +524,72 @@ export default function Dashboard({
                 <div className="relative z-10">
                   <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Internal Marks</p>
                   <div className="flex items-baseline gap-0.5">
-                    <span className="text-[42px] font-black leading-none tracking-tighter"
-                      style={{ color: marksSafe ? "#34d399" : "#f87171", textShadow: marksSafe ? "0 0 24px rgba(52,211,153,0.35)" : "0 0 24px rgba(248,113,113,0.35)" }}>
-                      {overallMarks}
-                    </span>
-                    {overallMarks !== "—" && <span className="text-[18px] font-bold text-white/40">%</span>}
+                    {marksMax > 0 ? (
+                      <>
+                        <span className="text-[32px] font-black leading-none tracking-tighter"
+                          style={{ color: marksSafe ? "#34d399" : "#f87171", textShadow: marksSafe ? "0 0 24px rgba(52,211,153,0.35)" : "0 0 24px rgba(248,113,113,0.35)" }}>
+                          {marksGot}
+                        </span>
+                        <span className="text-[16px] font-bold text-white/40">/</span>
+                        <span className="text-[22px] font-black leading-none text-white/40">
+                          {marksMax}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[42px] font-black leading-none tracking-tighter"
+                        style={{ color: "#f87171" }}>
+                        —
+                      </span>
+                    )}
                   </div>
                   <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
                     <div
                       className="h-full rounded-full transition-all duration-1000"
                       style={{
-                        width: `${overallMarks === "—" ? 0 : overallMarks}%`,
+                        width: `${marksMax > 0 ? Math.min((marksGot / marksMax) * 100, 100) : 0}%`,
                         background: marksSafe ? "linear-gradient(90deg, #059669, #34d399)" : "linear-gradient(90deg, #dc2626, #f87171)",
                         boxShadow: marksSafe ? "0 0 10px rgba(52,211,153,0.6)" : "0 0 10px rgba(248,113,113,0.6)",
                       }}
                     />
                   </div>
-                  <p className="text-[10px] text-white/35 mt-1.5 font-semibold">{marksMsg}</p>
+                  <p className="text-[10px] text-white/35 mt-1.5 font-semibold">{marksMax > 0 ? `${Math.round((marksGot / marksMax) * 100)}% · ${marksMsg}` : marksMsg}</p>
                 </div>
               </div>
+            </motion.div>
+
+            {/* ── MONETIZATION & GROWTH WIDGETS ── */}
+            <motion.div variants={itemVariant}>
+              <AttendanceBunkShieldBadge
+                attendedClasses={totalP}
+                totalClasses={totalC}
+                targetThresholdPct={monetization.targetBunkPct}
+                tierId={monetization.tierId}
+                variant="card"
+                onOpenModal={monetization.openBunkShieldModal}
+                onOpenUpgrade={monetization.openProModal}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariant} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <TrustScoreStatusPill
+                score={monetization.trustScore}
+                tierId={monetization.tierId}
+                variant="card"
+                onOpenModal={monetization.openTrustModal}
+              />
+              <StudentReferralCard
+                referralCount={monetization.referralCount}
+                variant="card"
+                onOpenModal={monetization.openReferralModal}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariant}>
+              <ClassivoProUpgradeCard
+                tierId={monetization.tierId}
+                variant="card"
+                onOpenUpgrade={monetization.openProModal}
+              />
             </motion.div>
 
             {/* ── ROW 2: Day Order + CGPA ── */}
@@ -683,6 +744,40 @@ export default function Dashboard({
         onClose={() => setIsAlertsOpen(false)}
         exams={exams}
         upcomingBreaks={upcomingBreaks}
+      />
+
+      {/* Monetization & Feature Modals */}
+      <ClassivoProUpgradeModal
+        isOpen={monetization.isProModalOpen}
+        onClose={monetization.closeProModal}
+        currentTierId={monetization.tierId}
+        onUpgradeTier={monetization.upgradeTier}
+      />
+
+      <AttendanceBunkShieldModal
+        isOpen={monetization.isBunkShieldModalOpen}
+        onClose={monetization.closeBunkShieldModal}
+        attendanceData={data?.attendance || []}
+        targetThresholdPct={monetization.targetBunkPct}
+        onSelectTargetPct={monetization.changeTargetBunkPct}
+        tierId={monetization.tierId}
+        onOpenUpgrade={monetization.openProModal}
+      />
+
+      <TrustScoreModal
+        isOpen={monetization.isTrustModalOpen}
+        onClose={monetization.closeTrustModal}
+        trustScore={monetization.trustScore}
+        tierId={monetization.tierId}
+        onUpdateTrustScore={monetization.updateTrustScore}
+        onOpenUpgrade={monetization.openProModal}
+      />
+
+      <StudentReferralModal
+        isOpen={monetization.isReferralModalOpen}
+        onClose={monetization.closeReferralModal}
+        referralCount={monetization.referralCount}
+        onIncrementReferrals={monetization.incrementReferrals}
       />
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Haptics } from "@/utils/shared/haptics";
-import { NOVA, mono } from "./tokens";
+import { NOVA, mono, SPRINGS } from "./tokens";
 
 const TABS = [
   { id: "home", label: "home", path: "/", icon: "grid_view", color: NOVA.lime },
@@ -30,85 +31,106 @@ export default function NovaShell({
       className="relative h-full w-full flex flex-col overflow-hidden select-none"
       style={{ background: NOVA.bg, color: NOVA.text }}
     >
+      {/* Ambient Backdrop Glows */}
+      <div className="absolute top-0 left-1/4 w-[400px] h-[200px] bg-sky-500/10 blur-[120px] pointer-events-none rounded-full" />
+      <div className="absolute bottom-12 right-1/4 w-[350px] h-[200px] bg-lime-500/05 blur-[120px] pointer-events-none rounded-full" />
+
       {/* Top Glass Header */}
       <header
-        className="shrink-0 flex items-center justify-between px-5 h-14 z-50 backdrop-blur-xl"
+        className="shrink-0 flex items-center justify-between px-5 h-15 z-50 backdrop-blur-2xl transition-all duration-300"
         style={{
-          borderBottom: `1px solid ${NOVA.border}`,
-          background: "rgba(10, 13, 20, 0.85)",
+          borderBottom: `1px solid ${NOVA.borderStrong}`,
+          background: "linear-gradient(180deg, rgba(10, 13, 20, 0.92) 0%, rgba(10, 13, 20, 0.78) 100%)",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.35)",
         }}
       >
-        <div className="flex items-center gap-2.5">
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={SPRINGS.smooth}
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => router.push("/")}
+        >
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform hover:scale-105"
+            className="relative w-8.5 h-8.5 rounded-xl flex items-center justify-center overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, ${NOVA.lime}22 0%, ${NOVA.blue}22 100%)`,
-              border: `1px solid ${NOVA.lime}44`,
-              boxShadow: `0 0 16px ${NOVA.lime}26`,
+              background: `linear-gradient(135deg, ${NOVA.lime}28 0%, ${NOVA.blue}28 100%)`,
+              border: `1px solid ${NOVA.lime}55`,
+              boxShadow: `0 0 20px ${NOVA.lime}35, inset 0 1px 1px rgba(255, 255, 255, 0.3)`,
             }}
           >
-            <span className="material-symbols-outlined text-[16px] font-black" style={{ color: NOVA.lime }}>
+            <span className="material-symbols-outlined text-[17px] font-black" style={{ color: NOVA.lime }}>
               diamond
             </span>
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-lime-400 to-sky-400" />
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[18px] font-black lowercase tracking-tight" style={{ color: NOVA.text }}>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[19px] font-black lowercase tracking-tight" style={{ color: NOVA.text }}>
               classivo
             </span>
-            <span
-              className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+            <motion.span
+              animate={{ boxShadow: [`0 0 8px ${NOVA.lime}40`, `0 0 18px ${NOVA.cyan}60`, `0 0 8px ${NOVA.lime}40`] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
               style={{
                 ...mono(),
                 color: NOVA.ink,
                 background: `linear-gradient(90deg, ${NOVA.lime}, ${NOVA.cyan})`,
-                boxShadow: `0 0 12px ${NOVA.lime}40`,
               }}
             >
               v2
-            </span>
+            </motion.span>
           </div>
-        </div>
+        </motion.div>
 
         <div className="flex items-center gap-2">
           {onRefresh && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.9 }}
+              transition={SPRINGS.bouncy}
               onClick={() => {
                 Haptics.light();
                 onRefresh();
               }}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:border-sky-400/40"
+              className="w-9.5 h-9.5 rounded-full flex items-center justify-center transition-all hover:border-sky-400/50"
               style={{
-                border: `1px solid ${NOVA.border}`,
-                background: NOVA.panel,
-                backdropFilter: "blur(12px)",
+                border: `1px solid ${NOVA.borderStrong}`,
+                background: "linear-gradient(135deg, rgba(24, 32, 50, 0.8) 0%, rgba(14, 18, 28, 0.7) 100%)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
               }}
               title="Refresh Portal Data"
             >
               <span
-                className={`material-symbols-outlined text-[17px] ${isRefreshing ? "animate-spin" : ""}`}
+                className={`material-symbols-outlined text-[18px] transition-all ${isRefreshing ? "animate-spin" : ""}`}
                 style={{ color: NOVA.blue }}
               >
                 refresh
               </span>
-            </button>
+            </motion.button>
           )}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.9 }}
+            transition={SPRINGS.bouncy}
             onClick={() => {
               Haptics.selection();
               onOpenSettings();
             }}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:border-slate-400/40"
+            className="w-9.5 h-9.5 rounded-full flex items-center justify-center transition-all hover:border-slate-400/50"
             style={{
-              border: `1px solid ${NOVA.border}`,
-              background: NOVA.panel,
-              backdropFilter: "blur(12px)",
+              border: `1px solid ${NOVA.borderStrong}`,
+              background: "linear-gradient(135deg, rgba(24, 32, 50, 0.8) 0%, rgba(14, 18, 28, 0.7) 100%)",
+              backdropFilter: "blur(16px)",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
             }}
             title="Settings"
           >
-            <span className="material-symbols-outlined text-[17px]" style={{ color: NOVA.text }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: NOVA.text }}>
               tune
             </span>
-          </button>
+          </motion.button>
         </div>
       </header>
 
@@ -117,62 +139,73 @@ export default function NovaShell({
 
       {/* Bottom Ticket Navigation */}
       <nav
-        className="shrink-0 px-4 pt-2 pb-1 backdrop-blur-xl"
+        className="shrink-0 px-4 pt-2.5 pb-1.5 z-50 backdrop-blur-2xl transition-all"
         style={{
-          borderTop: `1px solid ${NOVA.border}`,
-          background: "rgba(10, 13, 20, 0.9)",
+          borderTop: `1px solid ${NOVA.borderStrong}`,
+          background: "linear-gradient(0deg, rgba(10, 13, 20, 0.96) 0%, rgba(10, 13, 20, 0.85) 100%)",
         }}
       >
         <div
-          className="flex items-stretch justify-around max-w-sm mx-auto rounded-2xl p-1.5 shadow-2xl"
+          className="relative flex items-stretch justify-around max-w-md mx-auto rounded-2xl p-1.5 shadow-2xl overflow-hidden"
           style={{
-            background: NOVA.panel,
-            backdropFilter: "blur(20px)",
-            border: `1px solid ${NOVA.borderStrong}`,
+            background: "linear-gradient(135deg, rgba(18, 24, 38, 0.85) 0%, rgba(12, 16, 26, 0.75) 100%)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: `1px solid ${NOVA.borderHighlight}`,
+            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
           }}
         >
           {TABS.map(({ id, label, path, icon, color }) => {
             const safe = pathname ?? "";
             const isActive = path === "/" ? safe === "/" : safe.startsWith(path);
             return (
-              <button
+              <motion.button
                 key={id}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.93 }}
+                transition={SPRINGS.smooth}
                 onClick={() => {
                   Haptics.light();
                   router.push(path);
                 }}
-                className="flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all active:scale-95"
-                style={{
-                  minWidth: 68,
-                  padding: "8px 12px",
-                  background: isActive ? color : "transparent",
-                  boxShadow: isActive ? `0 4px 20px ${color}44` : "none",
-                }}
+                className="relative flex-1 flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 px-2.5 transition-all z-10"
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="novaActiveTabPill"
+                    transition={SPRINGS.smooth}
+                    className="absolute inset-0 rounded-xl z-0"
+                    style={{
+                      background: color,
+                      boxShadow: `0 4px 20px ${color}55, inset 0 1px 1px rgba(255, 255, 255, 0.3)`,
+                    }}
+                  />
+                )}
                 <span
-                  className="material-symbols-outlined text-[20px] transition-all"
+                  className="material-symbols-outlined text-[21px] relative z-10 transition-transform duration-200"
                   style={{
                     fontVariationSettings: isActive ? "'FILL' 1, 'wght' 600" : "'FILL' 0, 'wght' 400",
                     color: isActive ? "#060911" : color,
-                    opacity: isActive ? 1 : 0.6,
+                    opacity: isActive ? 1 : 0.65,
                   }}
                 >
                   {icon}
                 </span>
                 <span
-                  className="text-[8.5px] font-black uppercase tracking-[0.14em]"
+                  className="text-[9px] font-black uppercase tracking-[0.14em] relative z-10 transition-colors"
                   style={{ color: isActive ? "#060911" : NOVA.faint }}
                 >
                   {label}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
         <p
-          className="text-center text-[8px] font-black uppercase tracking-[0.24em] py-1.5 opacity-60"
+          className="text-center text-[8.5px] font-black uppercase tracking-[0.26em] py-2 opacity-65 flex items-center justify-center gap-1.5"
           style={{ ...mono(), color: NOVA.faint }}
         >
+          <span className="w-1 h-1 rounded-full bg-lime-400 animate-pulse" />
           classivo v2 // {pathLabel(pathname)}
         </p>
       </nav>

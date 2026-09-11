@@ -22,7 +22,7 @@ import {
 export const HOSTEL_SELECTORS = {
   kv: {
     academicYear: ["academic year", "session", "ay"],
-    hostelName: ["hostel name", "hostel", "hostel block name", "hall of residence"],
+    hostelName: ["hostel name", "hostel", "hostel block name", "hostel / block name", "hostel/block name", "hostel & block name", "block name", "hostel block", "hall of residence", "hall name"],
     roomNo: ["room no", "room number", "room"],
     block: ["block", "hostel block", "block name"],
     floor: ["floor"],

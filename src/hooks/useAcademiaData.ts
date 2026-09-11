@@ -58,6 +58,16 @@ export const useAcademiaData = (data: AcademiaData | null) => {
     return Math.round(totalPct / validMarks.length);
   }, [sortedMarks]);
 
+  const totalMarksGot = useMemo(() => {
+    const validMarks = sortedMarks.filter(m => !m.isNA);
+    return validMarks.reduce((sum, m) => sum + (m.totalGot || 0), 0);
+  }, [sortedMarks]);
+
+  const totalMarksMax = useMemo(() => {
+    const validMarks = sortedMarks.filter(m => !m.isNA);
+    return validMarks.reduce((sum, m) => sum + (m.totalMax || 0), 0);
+  }, [sortedMarks]);
+
   const recentMarks = useMemo(() => {
     return sortedMarks.filter(m => !m.isNA).slice(0, 2);
   }, [sortedMarks]);
@@ -169,6 +179,37 @@ export const useAcademiaData = (data: AcademiaData | null) => {
     return getCriticalAttendance(data?.attendance || []);
   }, [data?.attendance]);
 
+  const subjectAttendance = useMemo(() => {
+    const att = data?.attendance || [];
+    if (!Array.isArray(att) || att.length === 0) return [];
+    return att.map((subj: any) => {
+      const conducted = parseInt(subj.conducted ?? subj.classesHeld ?? subj.held ?? subj.totalClasses ?? "0", 10) || 0;
+      const presentRaw = subj.present ?? subj.classesAttended ?? subj.attended;
+      const absentRaw = parseInt(subj.absent || "0", 10) || 0;
+      const present = presentRaw !== undefined && presentRaw !== null
+        ? (parseInt(presentRaw, 10) || 0)
+        : Math.max(0, conducted - absentRaw);
+      const absent = Math.max(0, conducted - present);
+
+      const rawPct = subj.percentage ?? subj.percent;
+      let pct = 0;
+      if (rawPct !== undefined && rawPct !== null && rawPct !== "") {
+        pct = Math.round(parseFloat(String(rawPct).replace("%", "").trim()) || 0);
+      } else if (conducted > 0) {
+        pct = Math.round((present / conducted) * 100);
+      }
+
+      return {
+        name: subj.title || subj.courseName || subj.courseTitle || subj.course || "Subject",
+        code: subj.code || subj.courseCode || "",
+        conducted,
+        present,
+        absent,
+        percentage: pct,
+      };
+    }).sort((a: any, b: any) => a.percentage - b.percentage);
+  }, [data?.attendance]);
+
   const triggerTestClass = useCallback(() => {
     sendNotification(
       "Test Class Incoming",
@@ -181,11 +222,14 @@ export const useAcademiaData = (data: AcademiaData | null) => {
     timeStatus,
     overallAttendance,
     criticalAttendance,
+    subjectAttendance,
     overallMarks,
+    totalMarksGot,
+    totalMarksMax,
     recentMarks,
     effectiveDayOrder,
     effectiveSchedule: schedule,
     calendarData,
     triggerTestClass,
-  }), [timeStatus, overallAttendance, criticalAttendance, overallMarks, recentMarks, effectiveDayOrder, schedule, calendarData, triggerTestClass]);
+  }), [timeStatus, overallAttendance, criticalAttendance, subjectAttendance, overallMarks, totalMarksGot, totalMarksMax, recentMarks, effectiveDayOrder, schedule, calendarData, triggerTestClass]);
 };

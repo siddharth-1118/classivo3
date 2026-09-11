@@ -625,6 +625,7 @@ async function extractFullStudentData(session: HttpSRMSession): Promise<Record<s
           currentStatus: dashboardData.currentStatus || 'Active',
           status: dashboardData.currentStatus || 'Active',
           cgpa: dashboardData.cgpa ? String(dashboardData.cgpa) : null,
+          hostelStatus: dashboardData.hostelStatus || null,
         };
       }
     } catch (dashErr: any) {
@@ -871,11 +872,39 @@ async function extractFullStudentData(session: HttpSRMSession): Promise<Record<s
           }
         }
         
+        // Helper to find hostel name from KV map with all key variations
+        const getHostelNameFromKv = (kvMap: Record<string, string>): string | null => {
+          if (!kvMap) return null;
+          for (const [k, v] of Object.entries(kvMap)) {
+            const lower = String(k).toLowerCase();
+            if (
+              (lower.includes('hostel') || lower.includes('block') || lower.includes('hall') || lower.includes('residence')) &&
+              !lower.includes('fee') && !lower.includes('date') && !lower.includes('status') && !lower.includes('room') && v
+            ) {
+              return String(v);
+            }
+          }
+          return null;
+        };
+
+        const getRoomNoFromKv = (kvMap: Record<string, string>): string | null => {
+          if (!kvMap) return null;
+          for (const [k, v] of Object.entries(kvMap)) {
+            const lower = String(k).toLowerCase();
+            if ((lower.includes('room') || lower.includes('bed')) && v) {
+              return String(v);
+            }
+          }
+          return null;
+        };
+
         // 2. parseHostelBookingPage for KV maps
         const bookingParsed = parseHostelBookingPage(html);
         if (bookingParsed?.labelValues) {
-          if (bookingParsed.labelValues['Hostel Name'] && !hostelData.hostelName) hostelData.hostelName = bookingParsed.labelValues['Hostel Name'];
-          if (bookingParsed.labelValues['Room No'] && !hostelData.roomNo) hostelData.roomNo = bookingParsed.labelValues['Room No'];
+          const nameFromBooking = getHostelNameFromKv(bookingParsed.labelValues);
+          const roomFromBooking = getRoomNoFromKv(bookingParsed.labelValues);
+          if (nameFromBooking && !hostelData.hostelName) hostelData.hostelName = nameFromBooking;
+          if (roomFromBooking && !hostelData.roomNo) hostelData.roomNo = roomFromBooking;
           if (bookingParsed.labelValues['Allotment Date'] && !hostelData.allotmentDate) hostelData.allotmentDate = bookingParsed.labelValues['Allotment Date'];
           if (bookingParsed.labelValues['Fee Amount'] && !hostelData.feeAmount) hostelData.feeAmount = bookingParsed.labelValues['Fee Amount'];
         }
@@ -883,8 +912,10 @@ async function extractFullStudentData(session: HttpSRMSession): Promise<Record<s
         // 3. parseHostelDetailsPage for KV maps
         const detailsParsed = parseHostelDetailsPage(html);
         if (detailsParsed?.labelValues) {
-          if (detailsParsed.labelValues['Hostel Name'] && !hostelData.hostelName) hostelData.hostelName = detailsParsed.labelValues['Hostel Name'];
-          if (detailsParsed.labelValues['Room No'] && !hostelData.roomNo) hostelData.roomNo = detailsParsed.labelValues['Room No'];
+          const nameFromDetails = getHostelNameFromKv(detailsParsed.labelValues);
+          const roomFromDetails = getRoomNoFromKv(detailsParsed.labelValues);
+          if (nameFromDetails && !hostelData.hostelName) hostelData.hostelName = nameFromDetails;
+          if (roomFromDetails && !hostelData.roomNo) hostelData.roomNo = roomFromDetails;
           if (detailsParsed.labelValues['Allotment Date'] && !hostelData.allotmentDate) hostelData.allotmentDate = detailsParsed.labelValues['Allotment Date'];
         }
       } catch (e: any) {

@@ -7,6 +7,15 @@ import { useRouter } from "next/navigation";
 import { Haptics } from "@/utils/shared/haptics";
 import { EncryptionUtils } from "@/utils/shared/Encryption";
 import NovaProfile from "@/components/themes/nova/NovaProfile";
+import { useMonetization } from "@/hooks/useMonetization";
+import { AttendanceBunkShieldBadge } from "@/components/monetization/AttendanceBunkShieldBadge";
+import { AttendanceBunkShieldModal } from "@/components/monetization/AttendanceBunkShieldModal";
+import { TrustScoreStatusPill } from "@/components/monetization/TrustScoreStatusPill";
+import { TrustScoreModal } from "@/components/monetization/TrustScoreModal";
+import { StudentReferralCard } from "@/components/monetization/StudentReferralCard";
+import { StudentReferralModal } from "@/components/monetization/StudentReferralModal";
+import { ClassivoProUpgradeCard } from "@/components/monetization/ClassivoProUpgradeCard";
+import { ClassivoProUpgradeModal } from "@/components/monetization/ClassivoProUpgradeModal";
 
 const BEZIER = [0.34, 0.15, 0.16, 0.96] as const;
 
@@ -64,8 +73,22 @@ export default function ProfilePage() {
   const { userData, logout } = useApp();
   const { uiStyle } = useTheme();
   const router = useRouter();
+  const monetization = useMonetization();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  let totalConducted = 0;
+  let totalPresent = 0;
+  if (Array.isArray(userData?.attendance)) {
+    userData.attendance.forEach((a: any) => {
+      const c = parseInt(a?.conducted ?? a?.classesHeld ?? a?.held ?? a?.totalClasses ?? "0", 10) || 0;
+      const pRaw = a?.present ?? a?.classesAttended ?? a?.attended;
+      const abs = parseInt(a?.absent || "0", 10) || 0;
+      const p = pRaw !== undefined && pRaw !== null ? (parseInt(pRaw, 10) || 0) : Math.max(0, c - abs);
+      totalConducted += c;
+      totalPresent += p;
+    });
+  }
 
   if (uiStyle === "nova") {
     return <NovaProfile />;
@@ -187,6 +210,41 @@ export default function ProfilePage() {
             </motion.div>
           )}
 
+          {/* Monetization & Growth Widgets */}
+          <motion.div variants={itemVariant}>
+            <ClassivoProUpgradeCard
+              tierId={monetization.tierId}
+              variant="card"
+              onOpenUpgrade={monetization.openProModal}
+            />
+          </motion.div>
+
+          <motion.div variants={itemVariant}>
+            <AttendanceBunkShieldBadge
+              attendedClasses={totalPresent}
+              totalClasses={totalConducted}
+              targetThresholdPct={monetization.targetBunkPct}
+              tierId={monetization.tierId}
+              variant="card"
+              onOpenModal={monetization.openBunkShieldModal}
+              onOpenUpgrade={monetization.openProModal}
+            />
+          </motion.div>
+
+          <motion.div variants={itemVariant} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TrustScoreStatusPill
+              score={monetization.trustScore}
+              tierId={monetization.tierId}
+              variant="card"
+              onOpenModal={monetization.openTrustModal}
+            />
+            <StudentReferralCard
+              referralCount={monetization.referralCount}
+              variant="card"
+              onOpenModal={monetization.openReferralModal}
+            />
+          </motion.div>
+
           {/* Info card */}
           <motion.div
             variants={itemVariant}
@@ -220,10 +278,54 @@ export default function ProfilePage() {
           {/* Hostel card */}
           {(() => {
             const hostelObj = userData?.hostel?.hostel || userData?.hostel;
-            const hostelName = hostelObj?.hostelName || hostelObj?.name || hostelObj?.booking?.labelValues?.["Hostel Name"] || hostelObj?.details?.labelValues?.["Hostel Name"];
-            const roomNo = hostelObj?.roomNo || hostelObj?.room || hostelObj?.booking?.labelValues?.["Room No"] || hostelObj?.details?.labelValues?.["Room No"];
+
+            const extractHostelName = (obj: any): string | undefined => {
+              if (!obj) return undefined;
+              if (obj.hostelName && obj.hostelName !== "null") return obj.hostelName;
+              if (obj.name && obj.name !== "null") return obj.name;
+              if (obj.hostel && typeof obj.hostel === 'object' && obj.hostel.hostelName) return obj.hostel.hostelName;
+              if (obj.block && obj.block !== "null") return obj.block;
+              if (obj.hostelBlock && obj.hostelBlock !== "null") return obj.hostelBlock;
+
+              const kvMaps = [obj.booking?.labelValues, obj.details?.labelValues, obj.labelValues].filter(Boolean);
+              for (const kv of kvMaps) {
+                for (const [k, v] of Object.entries(kv)) {
+                  const lower = String(k).toLowerCase();
+                  if (
+                    (lower.includes('hostel') || lower.includes('block') || lower.includes('hall') || lower.includes('residence')) &&
+                    !lower.includes('fee') && !lower.includes('date') && !lower.includes('status') && !lower.includes('room') && v
+                  ) {
+                    return String(v);
+                  }
+                }
+              }
+              return undefined;
+            };
+
+            const extractRoomNo = (obj: any): string | undefined => {
+              if (!obj) return undefined;
+              if (obj.roomNo && obj.roomNo !== "null") return obj.roomNo;
+              if (obj.room && obj.room !== "null") return obj.room;
+              if (obj.hostel && typeof obj.hostel === 'object' && obj.hostel.roomNo) return obj.hostel.roomNo;
+
+              const kvMaps = [obj.booking?.labelValues, obj.details?.labelValues, obj.labelValues].filter(Boolean);
+              for (const kv of kvMaps) {
+                for (const [k, v] of Object.entries(kv)) {
+                  const lower = String(k).toLowerCase();
+                  if ((lower.includes('room') || lower.includes('bed')) && v) {
+                    return String(v);
+                  }
+                }
+              }
+              return undefined;
+            };
+
+            const hostelName = extractHostelName(hostelObj) || extractHostelName(userData?.hostel) || extractHostelName(userData?.profile);
+            const roomNo = extractRoomNo(hostelObj) || extractRoomNo(userData?.hostel) || extractRoomNo(userData?.profile);
             const allotmentDate = hostelObj?.allotmentDate || hostelObj?.booking?.labelValues?.["Allotment Date"] || hostelObj?.details?.labelValues?.["Allotment Date"];
             const feeAmount = hostelObj?.feeAmount || hostelObj?.booking?.labelValues?.["Fee Amount"];
+            const hostelStatus = userData?.profile?.hostelStatus || userData?.hostelStatus || null;
+            const isHosteller = hostelStatus?.toLowerCase()?.includes('hostel') || hostelName || roomNo;
 
             const hasHostel = hostelName || roomNo || allotmentDate || feeAmount;
             return (
@@ -249,7 +351,7 @@ export default function ProfilePage() {
                       {feeAmount && <InfoRow icon="payments" label="Fee Amount" value={feeAmount} />}
                     </>
                   ) : (
-                    <InfoRow icon="home" label="Accommodation Status" value="Day Scholar / No Active Hostel Allotment" />
+                    <InfoRow icon="home" label="Accommodation Status" value={isHosteller ? "Hosteller — details pending" : "Day Scholar / No Active Hostel Allotment"} />
                   )}
                 </motion.div>
               </motion.div>
@@ -334,6 +436,40 @@ export default function ProfilePage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Monetization Modals */}
+      <ClassivoProUpgradeModal
+        isOpen={monetization.isProModalOpen}
+        onClose={monetization.closeProModal}
+        currentTierId={monetization.tierId}
+        onUpgradeTier={monetization.upgradeTier}
+      />
+
+      <AttendanceBunkShieldModal
+        isOpen={monetization.isBunkShieldModalOpen}
+        onClose={monetization.closeBunkShieldModal}
+        attendanceData={userData?.attendance || []}
+        targetThresholdPct={monetization.targetBunkPct}
+        onSelectTargetPct={monetization.changeTargetBunkPct}
+        tierId={monetization.tierId}
+        onOpenUpgrade={monetization.openProModal}
+      />
+
+      <TrustScoreModal
+        isOpen={monetization.isTrustModalOpen}
+        onClose={monetization.closeTrustModal}
+        trustScore={monetization.trustScore}
+        tierId={monetization.tierId}
+        onUpdateTrustScore={monetization.updateTrustScore}
+        onOpenUpgrade={monetization.openProModal}
+      />
+
+      <StudentReferralModal
+        isOpen={monetization.isReferralModalOpen}
+        onClose={monetization.closeReferralModal}
+        referralCount={monetization.referralCount}
+        onIncrementReferrals={monetization.incrementReferrals}
+      />
     </div>
   );
 }
