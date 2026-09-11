@@ -77,8 +77,8 @@ export function ClassivoProUpgradeModal({
     setVerificationError(null);
 
     const cleanUtr = utrInput.trim();
-    if (!cleanUtr || !/^\d{12}$/.test(cleanUtr)) {
-      setVerificationError("Please enter the valid 12-digit UPI UTR / Reference number from your PhonePe receipt.");
+    if (!cleanUtr || cleanUtr.length < 10 || cleanUtr.length > 30) {
+      setVerificationError("Please enter a valid 12-digit UPI UTR number, 10-digit mobile number, or UPI ID.");
       setVerifying(false);
       return;
     }
@@ -237,19 +237,19 @@ export function ClassivoProUpgradeModal({
 
               <div>
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-white/50 mb-2 block">
-                  12-Digit UPI Reference Number (UTR)
+                  UPI Reference (UTR) / Mobile No / UPI ID
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    maxLength={12}
-                    placeholder="e.g. 425167891234"
+                    maxLength={30}
+                    placeholder="e.g. 425167891234 or 9866707883@ybl"
                     value={utrInput}
-                    onChange={(e) => setUtrInput(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setUtrInput(e.target.value.replace(/[^a-zA-Z0-9@._-]/g, ""))}
                     className="w-full bg-white/5 border border-white/15 focus:border-amber-400 px-4 py-3.5 rounded-2xl text-sm font-mono text-amber-300 font-bold tracking-widest outline-none transition-colors"
                   />
                   <span className="absolute right-4 top-3.5 text-xs text-white/30 font-mono">
-                    {utrInput.length}/12
+                    {utrInput.length}/30
                   </span>
                 </div>
                 {verificationError && (
@@ -268,7 +268,7 @@ export function ClassivoProUpgradeModal({
                 </button>
                 <button
                   onClick={handleVerifyPayment}
-                  disabled={verifying || utrInput.length !== 12}
+                  disabled={verifying || utrInput.trim().length < 10}
                   className="flex-1 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider bg-gradient-to-r from-amber-400 to-purple-500 text-black hover:brightness-110 disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
                 >
                   {verifying ? (

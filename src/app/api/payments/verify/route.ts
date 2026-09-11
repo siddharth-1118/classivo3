@@ -15,12 +15,12 @@ export async function POST(req: Request) {
 
     const cleanUtr = utr.trim();
 
-    // Standard UPI UTR format validation: 12 numeric digits
-    if (!/^\d{12}$/.test(cleanUtr)) {
+    // Validate payment identifier format: 10 to 30 characters (12-digit UTR, 10-digit mobile, or UPI ID)
+    if (!cleanUtr || cleanUtr.length < 10 || cleanUtr.length > 30) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid UTR format. Please enter the 12-digit UPI reference number from your PhonePe/GPay receipt.",
+          error: "Invalid format. Please enter a 12-digit UPI UTR number, 10-digit mobile number, or UPI ID.",
         },
         { status: 400 }
       );
