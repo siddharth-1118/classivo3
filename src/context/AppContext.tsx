@@ -513,17 +513,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsBackendError(false);
     setBackendErrorMsg(null);
     try {
-      const source = localStorage.getItem("classivo_connection_source") || ((existingData as any)?.portalConnected ? "srm_portal" : "academia");
-      const endpoint = source === "srm_portal" ? "/portal/sync" : "/refresh";
       const savedCookies = EncryptionUtils.loadDecrypted("academia_cookies");
       const savedCreds = EncryptionUtils.loadDecrypted("classivo_credentials") || {};
       const username = creds?.username || savedCreds?.username || "";
       const password = creds?.password || savedCreds?.password || "";
       const connectionId = (existingData as any)?.connectionId || (existingData as any)?.sessionId;
 
+      // ✅ Always use /refresh (Academia) when academia cookies exist — even if portal is also connected
+      // This ensures Academia attendance, marks, timetable keep refreshing for academia-login users
+      const hasAcademiaCookies = !!savedCookies;
+      const storedSource = localStorage.getItem("classivo_connection_source");
+      const source = hasAcademiaCookies ? "academia" : (storedSource || ((existingData as any)?.portalConnected ? "srm_portal" : "academia"));
+      const endpoint = source === "srm_portal" ? "/portal/sync" : "/refresh";
+
       const requestBody = source === "srm_portal"
         ? { username, password, source: "srm_portal", connectionId, sessionId: connectionId }
-        : { ...creds, cookies: savedCookies };
+        : { ...creds, username, password, cookies: savedCookies };
 
       const headers: Record<string, string> = { 
         "Content-Type": "application/json",

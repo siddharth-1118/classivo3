@@ -267,9 +267,18 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
         ? result.detail : result;
 
       if (payload.success) {
-        EncryptionUtils.saveEncrypted("classivo_credentials", { username: portalRegNo.trim(), password: portalPassword });
-        setConnectionSource("srm_portal");
-        localStorage.setItem("classivo_connection_source", "srm_portal");
+        // ✅ Keep academia credentials so /refresh still works on next sync
+        // Only save portal creds separately — don't overwrite academia creds
+        const academiaCredsExisting = EncryptionUtils.loadDecrypted("classivo_credentials");
+        if (!academiaCredsExisting || academiaCredsExisting.username?.includes("@")) {
+          // Academia creds already saved — don't overwrite with portal reg number
+        } else {
+          EncryptionUtils.saveEncrypted("classivo_credentials", { username: portalRegNo.trim(), password: portalPassword });
+        }
+        // ✅ Keep connection source as "academia" so refreshData uses /refresh not /portal/sync
+        // portalConnected flag signals that portal data is also available
+        setConnectionSource("academia");
+        localStorage.setItem("classivo_connection_source", "academia");
         const srmSchedule = payload.schedule || {};
         const academiaSchedule = yearPromptData?.schedule || {};
         const hasSRMTimetable = srmSchedule && typeof srmSchedule === "object" && Object.keys(srmSchedule).length > 0;
@@ -281,7 +290,7 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
           timetable: hasSRMTimetable ? (payload.timetable || srmSchedule) : (yearPromptData?.timetable || academiaSchedule),
           schedule: hasSRMTimetable ? srmSchedule : academiaSchedule,
           portalConnected: true,
-          source: "srm_portal",
+          source: "academia",
         };
         onLogin(mergedData);
         return;

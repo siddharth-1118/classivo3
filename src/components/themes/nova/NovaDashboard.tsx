@@ -55,13 +55,27 @@ export default function NovaDashboard({
     profile.name,
     profile.studentName,
     profile.displayName,
+    profile.fullName,
+    profile.student_name,
     data?.name,
     data?.studentName,
     data?.user_name,
+    data?.fullName,
+    data?.student_name,
+    // Derive first name from email as last resort (e.g. "john.doe@srmist.edu.in" → "john")
+    (() => {
+      const email = profile?.email || data?.profile?.email || "";
+      if (email && email.includes("@")) {
+        const localPart = email.split("@")[0];
+        const firstPart = localPart.split(/[._]/)[0];
+        if (firstPart && firstPart.length > 1 && !/^\d+$/.test(firstPart)) return firstPart;
+      }
+      return null;
+    })(),
   ];
   const foundName = rawNameCandidates.find(
-    (n) => n && typeof n === "string" && n.trim().length > 0 && n.toLowerCase() !== "student"
-  ) || "student";
+    (n) => n && typeof n === "string" && n.trim().length > 0 && n.toLowerCase() !== "student" && n.toLowerCase() !== "unknown"
+  ) || "there";
   const name = foundName.trim().split(" ")[0].toLowerCase();
   const isPortalLinked = connectionSource === "srm_portal" || (data as any)?.source === "srm_portal" || (data as any)?.portalConnected === true;
 
