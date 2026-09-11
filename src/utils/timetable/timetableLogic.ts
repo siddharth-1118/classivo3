@@ -1,5 +1,61 @@
 import { ScheduleData } from "@/types";
 import { parseTimetableTime } from "../dashboard/timetableLogic";
+import { supabase } from "@/lib/supabase";
+import { EncryptionUtils } from "@/utils/shared/Encryption";
+
+export const getStudentKey = (): string | null => {
+  if (typeof window === "undefined") return null;
+  const creds = EncryptionUtils.loadDecrypted("classivo_credentials");
+  if (creds?.username) return creds.username.trim();
+  const dataStr = localStorage.getItem("classivo_data");
+  if (dataStr) {
+    try {
+      const data = JSON.parse(dataStr);
+      return data?.profile?.email || data?.profile?.regNo || data?.registrationNumber || null;
+    } catch {}
+  }
+  return null;
+};
+
+export const syncCustomClassesToSupabase = async (updatedCustoms: any) => {
+  const studentKey = getStudentKey();
+  if (!studentKey) return;
+  try {
+    await supabase.from("user_custom_classes").upsert(
+      {
+        student_key: studentKey,
+        custom_classes: updatedCustoms,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "student_key" }
+    );
+  } catch (err) {
+    console.warn("Supabase custom classes sync notice:", err);
+  }
+};
+
+export const fetchCustomClassesFromSupabase = async (): Promise<any | null> => {
+  const studentKey = getStudentKey();
+  if (!studentKey) return null;
+  try {
+    const { data, error } = await supabase
+      .from("user_custom_classes")
+      .select("custom_classes")
+      .eq("student_key", studentKey)
+      .single();
+
+    if (!error && data?.custom_classes) {
+      localStorage.setItem("classivo_custom_classes", JSON.stringify(data.custom_classes));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("custom_classes_updated"));
+      }
+      return data.custom_classes;
+    }
+  } catch (err) {
+    console.warn("Fetch custom classes from Supabase notice:", err);
+  }
+  return null;
+};
 
 export const getInitialActiveDay = (
   schedule: ScheduleData,
@@ -53,7 +109,7 @@ export const handleAddClassLogic = (
     course: newSub,
     time: `${startTime} - ${endTime}`,
     room: newRoom,
-    faculty: "user added",
+    faculty: "Faculty Rescheduled",
     slot: newType === "lab" ? "P1" : "A1",
     type: newType,
     isCustom: true,
@@ -66,6 +122,62 @@ export const handleAddClassLogic = (
 
   localStorage.setItem("classivo_custom_classes", JSON.stringify(updated));
   window.dispatchEvent(new Event("custom_classes_updated"));
+
+  // Sync to Supabase in background
+  syncCustomClassesToSupabase(updated);
+
+  return true;
+};
+
+export const handleEditClassLogic = (
+  activeDay: number,
+  oldTimeStr: string,
+  newSub: string,
+  newRoom: string,
+  startTime: string,
+  endTime: string,
+  newType: "theory" | "lab"
+) => {
+  if (!newSub.trim() || !newRoom.trim() || !startTime || !endTime) return false;
+
+  const stored = localStorage.getItem("classivo_custom_classes");
+  const currentCustoms: Record<number, any[]> = stored ? JSON.parse(stored) : {};
+
+  const dayList = currentCustoms[activeDay] || [];
+  const existingIdx = dayList.findIndex((c: any) => c.time === oldTimeStr);
+
+  const updatedItem = {
+    id: existingIdx >= 0 ? dayList[existingIdx].id : `custom-${Date.now()}`,
+    code: newSub,
+    courseTitle: newSub,
+    course: newSub,
+    time: `${startTime} - ${endTime}`,
+    room: newRoom,
+    faculty: existingIdx >= 0 ? dayList[existingIdx].faculty : "Faculty Rescheduled",
+    slot: newType === "lab" ? "P1" : "A1",
+    type: newType,
+    isCustom: true,
+  };
+
+  let newDayList: any[];
+  if (existingIdx >= 0) {
+    newDayList = [...dayList];
+    newDayList[existingIdx] = updatedItem;
+  } else {
+    newDayList = [...dayList, updatedItem];
+  }
+
+  const updated = {
+    ...currentCustoms,
+    [activeDay]: newDayList,
+  };
+
+  localStorage.setItem("classivo_custom_classes", JSON.stringify(updated));
+  window.dispatchEvent(new Event("custom_classes_updated"));
+
+  // Sync to Supabase in background
+  syncCustomClassesToSupabase(updated);
+
   return true;
 };
 
@@ -83,6 +195,10 @@ export const handleDeleteCustomLogic = (day: number, timeStr: string) => {
       JSON.stringify(currentCustoms),
     );
     window.dispatchEvent(new Event("custom_classes_updated"));
+
+    // Sync to Supabase in background
+    syncCustomClassesToSupabase(currentCustoms);
+
     return true;
   }
   return false;

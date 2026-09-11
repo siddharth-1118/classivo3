@@ -10,6 +10,7 @@ import {
   processAndSortMarks,
   buildCourseMap,
 } from "@/utils/marks/marksLogic";
+import { fetchCustomClassesFromSupabase } from "@/utils/timetable/timetableLogic";
 import {
   AcademiaData,
   CalendarEvent,
@@ -140,7 +141,7 @@ export const useAcademiaData = (data: AcademiaData | null) => {
   }, [initialSchedule]);
 
   useEffect(() => {
-    mergeSchedule();
+    fetchCustomClassesFromSupabase().then(() => mergeSchedule());
     window.addEventListener("custom_classes_updated", mergeSchedule);
     return () =>
       window.removeEventListener("custom_classes_updated", mergeSchedule);

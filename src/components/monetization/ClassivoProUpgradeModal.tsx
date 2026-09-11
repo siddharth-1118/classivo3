@@ -229,46 +229,95 @@ export function ClassivoProUpgradeModal({
                 </p>
               </div>
 
-              {/* Action Buttons: PhonePe App Launcher & Copy UPI ID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={() => handlePayWithPhonePe()}
-                  className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:brightness-110 text-white font-extrabold text-xs flex items-center justify-center gap-2 border border-purple-400/40 shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all active:scale-[0.98]"
-                >
-                  <ArrowRight className="w-4 h-4 text-purple-300" />
-                  <span>Open PhonePe App Directly</span>
-                </button>
+              {/* Action Buttons: Multi-App Launcher & Copy UPI ID */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => {
+                      Haptics.heavy();
+                      handleCopyUpi();
+                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
+                      const link = `phonepe://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
+                      window.location.href = link;
+                    }}
+                    className="py-3 px-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
+                  >
+                    <span className="text-purple-300 font-black">🟣 PhonePe</span>
+                    <span className="text-[9px] text-purple-200/70 font-normal">Tap to Open</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      Haptics.heavy();
+                      handleCopyUpi();
+                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
+                      const link = `gpay://upi/pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
+                      window.location.href = link;
+                    }}
+                    className="py-3 px-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
+                  >
+                    <span className="text-blue-300 font-black">🔵 GPay</span>
+                    <span className="text-[9px] text-blue-200/70 font-normal">Tap to Open</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      Haptics.heavy();
+                      handleCopyUpi();
+                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
+                      const link = `paytmmp://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
+                      window.location.href = link;
+                    }}
+                    className="py-3 px-2 rounded-xl bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
+                  >
+                    <span className="text-sky-300 font-black">🔷 Paytm</span>
+                    <span className="text-[9px] text-sky-200/70 font-normal">Tap to Open</span>
+                  </button>
+                </div>
+
                 <button
                   onClick={handleCopyUpi}
-                  className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/50 shadow-md transition-all active:scale-[0.98]"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/50 shadow-md transition-all active:scale-[0.98]"
                 >
-                  <span>{copiedUpi ? "✓ Copied: 9866707883@ybl" : "📋 Copy UPI ID: 9866707883@ybl"}</span>
+                  <span>{copiedUpi ? "✓ UPI ID Copied: 9866707883@ybl (Paste in PhonePe)" : "📋 Copy UPI ID: 9866707883@ybl"}</span>
                 </button>
               </div>
 
-              {/* QR Code & How to Pay Steps */}
-              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center gap-4">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=9866707883@ybl`}
-                  alt="UPI Payment QR Code"
-                  className="w-32 h-32 rounded-2xl border-2 border-amber-400/40 p-2 bg-white shrink-0 shadow-lg"
-                />
+              {/* Dynamic Standard UPI QR Code & Instructions */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                      `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${
+                        billingCycle === "yearly"
+                          ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR
+                          : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR
+                      }&cu=INR`
+                    )}`}
+                    alt="Standard Dynamic UPI Payment QR Code"
+                    className="w-36 h-36 rounded-2xl border-2 border-amber-400/50 p-2 bg-white shadow-xl"
+                  />
+                  <span className="text-[10px] font-mono text-amber-300 font-bold uppercase tracking-wider">
+                    Scan with PhonePe Scanner
+                  </span>
+                </div>
+
                 <div className="text-xs text-white/80 space-y-2 leading-relaxed flex-1">
                   <p className="font-black text-amber-300 text-sm uppercase tracking-wide">
-                    How to Pay on PhonePe / GPay / Paytm:
+                    Standard Payment Instructions:
                   </p>
                   <ol className="space-y-1.5 text-xs text-white/70">
                     <li className="flex items-start gap-2">
                       <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
-                      <span>Tap <strong className="text-amber-300 font-bold">1-Tap Copy UPI ID</strong> above or scan QR Code.</span>
+                      <span>Scan the <strong className="text-amber-300 font-bold">UPI QR Code</strong> above with PhonePe, GPay, or Paytm scanner (or take a screenshot and select from gallery).</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
-                      <span>Open PhonePe &rarr; Select <strong className="text-white">Pay to UPI ID / Mobile</strong> &rarr; Paste <strong className="text-amber-300">9866707883@ybl</strong>.</span>
+                      <span>Or tap <strong className="text-amber-300 font-bold">Copy UPI ID</strong> above &rarr; Open PhonePe &rarr; Select <strong className="text-white">To UPI ID</strong> &rarr; Paste <strong className="text-amber-300">9866707883@ybl</strong>.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">3</span>
-                      <span>Pay ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} &amp; enter the 12-digit UTR / Ref No below.</span>
+                      <span>Complete payment of ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} &amp; enter your 12-digit UTR / Ref No below to activate.</span>
                     </li>
                   </ol>
                 </div>

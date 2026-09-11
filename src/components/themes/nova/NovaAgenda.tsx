@@ -4,6 +4,12 @@ import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NOVA, mono, cap, carbonGlass, glassCard, statusBadge, SPRINGS } from "./tokens";
 import { Haptics } from "@/utils/shared/haptics";
+import { TimetableDownloadModal } from "@/components/timetable/TimetableDownloadModal";
+import {
+  handleAddClassLogic,
+  handleEditClassLogic,
+  handleDeleteCustomLogic,
+} from "@/utils/timetable/timetableLogic";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -173,6 +179,65 @@ export default function NovaAgenda({
   const [selectedOrder, setSelectedOrder] = useState<number>(() => parseDayOrderNumber(dayOrder) || 1);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(toDateStr(new Date()));
   const [nowMins, setNowMins] = useState(getCurrentTimeMinutes());
+
+  // Timetable Download & Reschedule Timing Modal States
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Class Timing Edit Form States
+  const [editSubject, setEditSubject] = useState("");
+  const [editRoom, setEditRoom] = useState("");
+  const [editStartTime, setEditStartTime] = useState("08:00 AM");
+  const [editEndTime, setEditEndTime] = useState("08:50 AM");
+  const [editType, setEditType] = useState<"theory" | "lab">("theory");
+  const [oldTimeStr, setOldTimeStr] = useState("");
+  const [isCustomSlot, setIsCustomSlot] = useState(false);
+
+  const handleOpenAddModal = () => {
+    Haptics.medium();
+    setEditSubject("");
+    setEditRoom("");
+    setEditStartTime("08:00 AM");
+    setEditEndTime("08:50 AM");
+    setEditType("theory");
+    setOldTimeStr("");
+    setIsCustomSlot(false);
+    setIsEditModalOpen(true);
+  };
+
+  const handleOpenEditSlot = (slot: any) => {
+    Haptics.medium();
+    const times = (slot.time || "08:00 AM - 08:50 AM").split(" - ");
+    setEditSubject(slot.courseTitle || slot.name || slot.course || slot.code || "");
+    setEditRoom(slot.room || "");
+    setEditStartTime(times[0]?.trim() || "08:00 AM");
+    setEditEndTime(times[1]?.trim() || "08:50 AM");
+    setEditType(slot.type === "lab" || slot?.slot?.startsWith("P") ? "lab" : "theory");
+    setOldTimeStr(slot.time || "");
+    setIsCustomSlot(!!slot.isCustom);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveTiming = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSubject.trim() || !editRoom.trim() || !editStartTime.trim() || !editEndTime.trim()) return;
+    Haptics.heavy();
+
+    if (oldTimeStr) {
+      handleEditClassLogic(selectedOrder, oldTimeStr, editSubject.trim(), editRoom.trim(), editStartTime.trim(), editEndTime.trim(), editType);
+    } else {
+      handleAddClassLogic(editSubject.trim(), editRoom.trim(), editStartTime.trim(), editEndTime.trim(), editType, selectedOrder);
+    }
+
+    setIsEditModalOpen(false);
+  };
+
+  const handleDeleteSlot = () => {
+    if (!oldTimeStr) return;
+    Haptics.heavy();
+    handleDeleteCustomLogic(selectedOrder, oldTimeStr);
+    setIsEditModalOpen(false);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setNowMins(getCurrentTimeMinutes()), 30000);
@@ -872,6 +937,26 @@ export default function NovaAgenda({
             transition={{ duration: 0.2 }}
             className="px-5 mt-5"
           >
+            {/* Action Toolbar: Download Timetable & Reschedule Class */}
+            <div className="flex items-center justify-between gap-2.5 mb-4">
+              <button
+                onClick={() => { Haptics.medium(); setIsDownloadModalOpen(true); }}
+                className="flex-1 py-3 px-4 rounded-2xl font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 border border-cyan-400/30"
+                style={{ ...mono(), background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)", color: "#fff" }}
+              >
+                <span className="material-symbols-outlined text-[17px]">download</span>
+                Download Timetable
+              </button>
+              <button
+                onClick={handleOpenAddModal}
+                className="py-3 px-4 rounded-2xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border active:scale-95 shrink-0"
+                style={{ ...mono(), background: `${NOVA.orange}18`, borderColor: `${NOVA.orange}44`, color: NOVA.orange }}
+              >
+                <span className="material-symbols-outlined text-[17px]">edit_calendar</span>
+                Reschedule Class
+              </button>
+            </div>
+
             <div className="flex items-center gap-3 mb-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ ...mono(), color: NOVA.orange }}>
                 Select Day Order
@@ -966,11 +1051,26 @@ export default function NovaAgenda({
                           </p>
                         </div>
 
-                        {(slot.code || slot.courseCode) && (
-                          <span className="text-[9px] font-black tracking-widest shrink-0" style={{ ...mono(), color: period.color }}>
-                            {slot.code || slot.courseCode}
-                          </span>
-                        )}
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          {(slot.code || slot.courseCode) && (
+                            <span className="text-[9px] font-black tracking-widest" style={{ ...mono(), color: period.color }}>
+                              {slot.code || slot.courseCode}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleOpenEditSlot(slot)}
+                            className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 border"
+                            style={{
+                              ...mono(),
+                              background: `${NOVA.orange}18`,
+                              borderColor: `${NOVA.orange}44`,
+                              color: NOVA.orange,
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[12px]">edit</span>
+                            Edit
+                          </button>
+                        </div>
                       </div>
 
                       {/* Bunk Shield Indicator */}
@@ -1126,6 +1226,176 @@ export default function NovaAgenda({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Timetable Download Modal ── */}
+      <TimetableDownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
+        schedule={schedule}
+      />
+
+      {/* ── Reschedule Class Timing Modal ── */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md rounded-3xl p-6 relative overflow-hidden border border-white/10 shadow-2xl"
+              style={{ background: "#0e1117" }}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: `${NOVA.orange}20`, border: `1px solid ${NOVA.orange}44` }}
+                  >
+                    <span className="material-symbols-outlined text-[20px]" style={{ color: NOVA.orange }}>
+                      edit_calendar
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-black text-white tracking-tight">
+                      {oldTimeStr ? "Reschedule Class Timing" : "Add Custom Class"}
+                    </h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400" style={mono()}>
+                      Day Order 0{selectedOrder}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveTiming} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider mb-1 text-slate-400" style={mono()}>
+                    Course / Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editSubject}
+                    onChange={(e) => setEditSubject(e.target.value)}
+                    placeholder="e.g. Advanced Operating Systems"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-[13px] font-semibold bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider mb-1 text-slate-400" style={mono()}>
+                    Classroom / Lab Venue
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editRoom}
+                    onChange={(e) => setEditRoom(e.target.value)}
+                    placeholder="e.g. Tech Park 602 or Lab 3"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-[13px] font-semibold bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider mb-1 text-slate-400" style={mono()}>
+                      Start Time
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editStartTime}
+                      onChange={(e) => setEditStartTime(e.target.value)}
+                      placeholder="08:00 AM"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-[12px] font-mono bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all text-center"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider mb-1 text-slate-400" style={mono()}>
+                      End Time
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editEndTime}
+                      onChange={(e) => setEditEndTime(e.target.value)}
+                      placeholder="08:50 AM"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-[12px] font-mono bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all text-center"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider mb-1 text-slate-400" style={mono()}>
+                    Slot Category
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditType("theory")}
+                      className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+                        editType === "theory"
+                          ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                          : "bg-white/5 border-white/10 text-slate-400"
+                      }`}
+                      style={mono()}
+                    >
+                      Theory Class
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditType("lab")}
+                      className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+                        editType === "lab"
+                          ? "bg-purple-500/20 border-purple-400 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.3)]"
+                          : "bg-white/5 border-white/10 text-slate-400"
+                      }`}
+                      style={mono()}
+                    >
+                      Practical / Lab
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  {isCustomSlot && oldTimeStr && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSlot}
+                      className="px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-all"
+                      style={mono()}
+                    >
+                      Delete Slot
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-[11px] font-bold text-slate-400 hover:text-white bg-white/5 border border-white/10 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-black transition-all shadow-lg active:scale-95"
+                    style={{ ...mono(), background: "linear-gradient(135deg, #a3e635 0%, #8be000 100%)" }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
