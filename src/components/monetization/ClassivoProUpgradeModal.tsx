@@ -229,57 +229,24 @@ export function ClassivoProUpgradeModal({
                 </p>
               </div>
 
-              {/* Action Buttons: Multi-App Launcher & Copy UPI ID */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => {
-                      Haptics.heavy();
-                      handleCopyUpi();
-                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
-                      const link = `phonepe://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
-                      window.location.href = link;
-                    }}
-                    className="py-3 px-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
-                  >
-                    <span className="text-purple-300 font-black">🟣 PhonePe</span>
-                    <span className="text-[9px] text-purple-200/70 font-normal">Tap to Open</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      Haptics.heavy();
-                      handleCopyUpi();
-                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
-                      const link = `gpay://upi/pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
-                      window.location.href = link;
-                    }}
-                    className="py-3 px-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
-                  >
-                    <span className="text-blue-300 font-black">🔵 GPay</span>
-                    <span className="text-[9px] text-blue-200/70 font-normal">Tap to Open</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      Haptics.heavy();
-                      handleCopyUpi();
-                      const price = billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR;
-                      const link = `paytmmp://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR`;
-                      window.location.href = link;
-                    }}
-                    className="py-3 px-2 rounded-xl bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/50 text-white font-extrabold text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-lg"
-                  >
-                    <span className="text-sky-300 font-black">🔷 Paytm</span>
-                    <span className="text-[9px] text-sky-200/70 font-normal">Tap to Open</span>
-                  </button>
-                </div>
+              {/* Action Buttons: PhonePe App Launcher & Copy UPI ID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => {
+                    Haptics.heavy();
+                    handleCopyUpi();
+                    window.location.href = "phonepe://";
+                  }}
+                  className="py-3.5 px-4 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg"
+                >
+                  <span className="text-purple-300 font-black">🟣 Open PhonePe App</span>
+                </button>
 
                 <button
                   onClick={handleCopyUpi}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/50 shadow-md transition-all active:scale-[0.98]"
+                  className="py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/50 shadow-md transition-all active:scale-[0.98]"
                 >
-                  <span>{copiedUpi ? "✓ UPI ID Copied: 9866707883@ybl (Paste in PhonePe)" : "📋 Copy UPI ID: 9866707883@ybl"}</span>
+                  <span>{copiedUpi ? "✓ UPI ID Copied: 9866707883@ybl" : "📋 Copy UPI ID: 9866707883@ybl"}</span>
                 </button>
               </div>
 
