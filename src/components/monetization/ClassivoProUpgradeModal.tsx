@@ -47,6 +47,27 @@ export function ClassivoProUpgradeModal({
   const proSavings = calculateYearlySavings("pro");
   const campusSavings = calculateYearlySavings("campus_pass");
 
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  const handleCopyUpi = () => {
+    Haptics.medium();
+    navigator.clipboard.writeText("9866707883@ybl");
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 3000);
+  };
+
+  const handleOpenUpiApp = (tierId: SubscriptionTierId) => {
+    const tier = SUBSCRIPTION_TIERS[tierId];
+    const price = billingCycle === "yearly" ? tier?.priceYearlyINR : tier?.priceMonthlyINR;
+    // Fix: Use registered name Vooka Sai Siddharth to avoid PhonePe payee mismatch decline
+    const upiUrl = `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR&tn=${encodeURIComponent(`Classivo ${tier.name}`)}`;
+    try {
+      window.open(upiUrl, "_self");
+    } catch (e) {
+      console.warn("UPI link error:", e);
+    }
+  };
+
   const handleSelectTier = (tierId: SubscriptionTierId) => {
     Haptics.heavy();
     if (tierId === "free") {
@@ -55,19 +76,10 @@ export function ClassivoProUpgradeModal({
       return;
     }
 
-    const tier = SUBSCRIPTION_TIERS[tierId];
-    const price = billingCycle === "yearly" ? tier?.priceYearlyINR : tier?.priceMonthlyINR;
-
-    if (price && price > 0) {
-      const upiUrl = `upi://pay?pa=9866707883@ybl&pn=Classivo&am=${price}&cu=INR&tn=${encodeURIComponent(`Classivo ${tier.name} Subscription`)}`;
-      try {
-        window.open(upiUrl, "_self");
-      } catch (e) {
-        console.warn("UPI Deep Link execution failed:", e);
-      }
-    }
+    // Try auto-opening UPI app with corrected payee name
+    handleOpenUpiApp(tierId);
     
-    // Move to verification step instead of instant free upgrade
+    // Move to verification step
     setPendingTier(tierId);
     setVerificationError(null);
     setUtrInput("");
@@ -160,10 +172,10 @@ export function ClassivoProUpgradeModal({
               </div>
               <div>
                 <h3 className="text-lg font-black tracking-tight text-white leading-tight">
-                  {pendingTier ? "Verify PhonePe Payment" : "Classivo Subscription Tiers"}
+                  {pendingTier ? "Complete PhonePe Payment" : "Classivo Subscription Tiers"}
                 </h3>
                 <p className="text-xs text-white/50 font-medium">
-                  {pendingTier ? "Enter the 12-digit UTR from your PhonePe receipt" : "Choose the plan that fits your campus lifestyle"}
+                  {pendingTier ? "Pay via UPI App, QR Code or UPI ID and paste 12-digit UTR" : "Choose the plan that fits your campus lifestyle"}
                 </p>
               </div>
             </div>
@@ -182,7 +194,7 @@ export function ClassivoProUpgradeModal({
 
           {pendingTier ? (
             /* PAYMENT UTR VERIFICATION VIEW */
-            <div className="py-6 px-2 space-y-5 flex-1 overflow-y-auto no-scrollbar">
+            <div className="py-5 px-2 space-y-4 flex-1 overflow-y-auto no-scrollbar">
               <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-cyan-500/15 border border-amber-500/30">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-black uppercase text-amber-300">
@@ -193,8 +205,51 @@ export function ClassivoProUpgradeModal({
                   </span>
                 </div>
                 <p className="text-xs text-white/70 leading-relaxed font-medium">
-                  Complete the ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} payment to <strong className="text-amber-300">Classivo (`9866707883@ybl`)</strong> on PhonePe / GPay / Paytm. Once paid, paste the <strong className="text-white">12-digit UPI Ref/UTR number</strong> from your receipt below.
+                  Pay <strong className="text-amber-300">₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR}</strong> to VPA <strong className="text-amber-300">9866707883@ybl</strong> (Payee: Vooka Sai Siddharth) using PhonePe, GPay, or Paytm.
                 </p>
+              </div>
+
+              {/* Action Buttons: Open App & Copy UPI ID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleOpenUpiApp(pendingTier)}
+                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 border border-purple-400/30 shadow-lg transition-all"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  <span>Open PhonePe / UPI App</span>
+                </button>
+                <button
+                  onClick={handleCopyUpi}
+                  className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 border border-amber-400/30 transition-all"
+                >
+                  {copiedUpi ? "✓ Copied: 9866707883@ybl" : "📋 Copy UPI ID: 9866707883@ybl"}
+                </button>
+              </div>
+
+              {/* QR Code & PhonePe Tip Section */}
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center gap-4">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                    `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${
+                      billingCycle === "yearly"
+                        ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR
+                        : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR
+                    }&cu=INR&tn=${encodeURIComponent(`Classivo ${SUBSCRIPTION_TIERS[pendingTier]?.name}`)}`
+                  )}`}
+                  alt="UPI Payment QR Code"
+                  className="w-28 h-28 rounded-xl border border-white/20 p-1.5 bg-white shrink-0"
+                />
+                <div className="text-xs text-white/70 space-y-1.5 leading-relaxed">
+                  <p className="font-extrabold text-amber-300">💡 PhonePe Security Tip:</p>
+                  <p>
+                    If PhonePe says <em className="text-rose-300">"Declined for security reasons"</em> when tapping Open App:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-white/60">
+                    <li>Tap <strong className="text-white">Copy UPI ID</strong> (`9866707883@ybl`).</li>
+                    <li>Open PhonePe → Search / Pay to UPI ID.</li>
+                    <li>Pay ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} &amp; copy 12-digit UTR below.</li>
+                  </ol>
+                </div>
               </div>
 
               <div>
