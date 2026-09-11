@@ -23,6 +23,8 @@ export interface StudentProfile {
   photo?: string;
   cgpa?: string;
   email?: string;
+  academicAdvisor?: string;
+  hostelStatus?: string;
 }
 
 export interface AttendanceRecord {
@@ -128,6 +130,7 @@ export interface AcademiaData {
   timetable?: ScheduleData;
   time_table?: ScheduleData;
   hostel?: any;
+  hostelStatus?: string;
   // Year-aware routing fields
   academicYearLevel?: number;
   yearDetection?: YearDetection;
