@@ -20,7 +20,10 @@ import {
 const EMPTY_SCHEDULE: ScheduleData = {};
 
 export const useAcademiaData = (data: AcademiaData | null) => {
-  const initialSchedule = useMemo(() => data?.schedule || EMPTY_SCHEDULE, [data?.schedule]);
+  const initialSchedule = useMemo(() => {
+    const s = data?.schedule || (data as any)?.timetable || (data as any)?.srmSchedule || EMPTY_SCHEDULE;
+    return (s && typeof s === "object" && Object.keys(s).length > 0) ? s : EMPTY_SCHEDULE;
+  }, [data?.schedule, (data as any)?.timetable, (data as any)?.srmSchedule]);
   const [schedule, setSchedule] = useState<ScheduleData>(initialSchedule);
   const [timeStatus, setTimeStatus] = useState<{
     nextClass: ScheduleSlot | null;

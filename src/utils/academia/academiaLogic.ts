@@ -18,9 +18,14 @@ export const getScheduleStatus = (
   isToday: boolean = true,
 ) => {
   const targetDay =
-    activeDayOrder && activeDayOrder !== "-" ? activeDayOrder : "1";
+    activeDayOrder && activeDayOrder !== "-" ? (activeDayOrder.replace(/\D/g, "") || "1") : "1";
   const dayKey = `Day ${targetDay}`;
-  const todaySchedule = schedule?.[dayKey];
+  const todaySchedule =
+    schedule?.[dayKey] ||
+    schedule?.[`Day${targetDay}`] ||
+    schedule?.[targetDay] ||
+    schedule?.[`day_${targetDay}`] ||
+    schedule?.[`day ${targetDay}`];
 
   if (!todaySchedule)
     return { status: "free", nextClass: null, currentClass: null };

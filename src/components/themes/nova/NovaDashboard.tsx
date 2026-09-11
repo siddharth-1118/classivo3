@@ -47,10 +47,23 @@ export default function NovaDashboard({
   onOpenSettings: () => void;
 }) {
   const router = useRouter();
-  const { isUpdating, refreshData, lastSyncAt, connectionSource } = useApp();
+  const { isUpdating, refreshData, lastSyncAt, connectionSource, customDisplayName } = useApp();
   const monetization = useMonetization();
   const profile = data?.profile || {};
-  const name = (profile.name || "student").split(" ")[0].toLowerCase();
+  const rawNameCandidates = [
+    customDisplayName,
+    profile.name,
+    profile.studentName,
+    profile.displayName,
+    data?.name,
+    data?.studentName,
+    data?.user_name,
+  ];
+  const foundName = rawNameCandidates.find(
+    (n) => n && typeof n === "string" && n.trim().length > 0 && n.toLowerCase() !== "student"
+  ) || "student";
+  const name = foundName.trim().split(" ")[0].toLowerCase();
+  const isPortalLinked = connectionSource === "srm_portal" || (data as any)?.source === "srm_portal" || (data as any)?.portalConnected === true;
 
   let totalConducted = 0;
   let totalPresent = 0;
@@ -206,7 +219,7 @@ export default function NovaDashboard({
       )}
 
       {/* Dual Portal Connection Prompt Banner */}
-      {(connectionSource === "academia" || (data as any)?.source === "academia") && !(data as any)?.portalConnected && (
+      {!isPortalLinked && (
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
