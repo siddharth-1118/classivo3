@@ -56,18 +56,6 @@ export function ClassivoProUpgradeModal({
     setTimeout(() => setCopiedUpi(false), 3000);
   };
 
-  const handleOpenUpiApp = (tierId: SubscriptionTierId) => {
-    const tier = SUBSCRIPTION_TIERS[tierId];
-    const price = billingCycle === "yearly" ? tier?.priceYearlyINR : tier?.priceMonthlyINR;
-    // Fix: Use registered name Vooka Sai Siddharth to avoid PhonePe payee mismatch decline
-    const upiUrl = `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${price}&cu=INR&tn=${encodeURIComponent(`Classivo ${tier.name}`)}`;
-    try {
-      window.open(upiUrl, "_self");
-    } catch (e) {
-      console.warn("UPI link error:", e);
-    }
-  };
-
   const handleSelectTier = (tierId: SubscriptionTierId) => {
     Haptics.heavy();
     if (tierId === "free") {
@@ -206,45 +194,43 @@ export function ClassivoProUpgradeModal({
                 </p>
               </div>
 
-              {/* Action Buttons: Copy UPI ID & Optional Open App */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Action Button: 1-Tap Copy UPI ID */}
+              <div>
                 <button
                   onClick={handleCopyUpi}
-                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 text-black font-extrabold text-xs flex items-center justify-center gap-2 border border-amber-300/40 shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all"
+                  className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:brightness-110 text-black font-black text-sm flex items-center justify-center gap-3 border border-amber-300/50 shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all active:scale-[0.98]"
                 >
-                  <span>{copiedUpi ? "✓ Copied 9866707883@ybl!" : "📋 Copy UPI ID (9866707883@ybl)"}</span>
-                </button>
-                <button
-                  onClick={() => handleOpenUpiApp(pendingTier)}
-                  className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-white/80 font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all"
-                >
-                  <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Try Auto-Open PhonePe</span>
+                  <span className="text-base">{copiedUpi ? "✓" : "📋"}</span>
+                  <span className="tracking-wide">
+                    {copiedUpi ? "COPIED (9866707883@ybl) TO CLIPBOARD!" : "1-TAP COPY UPI ID: 9866707883@ybl"}
+                  </span>
                 </button>
               </div>
 
-              {/* QR Code & PhonePe Tip Section */}
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center gap-4">
+              {/* QR Code & How to Pay Steps */}
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center gap-4">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                    `upi://pay?pa=9866707883@ybl&pn=Vooka%20Sai%20Siddharth&am=${
-                      billingCycle === "yearly"
-                        ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR
-                        : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR
-                    }&cu=INR&tn=${encodeURIComponent(`Classivo ${SUBSCRIPTION_TIERS[pendingTier]?.name}`)}`
-                  )}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=9866707883@ybl`}
                   alt="UPI Payment QR Code"
-                  className="w-28 h-28 rounded-xl border border-white/20 p-1.5 bg-white shrink-0"
+                  className="w-32 h-32 rounded-2xl border-2 border-amber-400/40 p-2 bg-white shrink-0 shadow-lg"
                 />
-                <div className="text-xs text-white/70 space-y-1.5 leading-relaxed">
-                  <p className="font-extrabold text-amber-300">💡 PhonePe Security Tip:</p>
-                  <p>
-                    If PhonePe says <em className="text-rose-300">"Declined for security reasons"</em> when tapping Open App:
+                <div className="text-xs text-white/80 space-y-2 leading-relaxed flex-1">
+                  <p className="font-black text-amber-300 text-sm uppercase tracking-wide">
+                    How to Pay on PhonePe / GPay / Paytm:
                   </p>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-white/60">
-                    <li>Tap <strong className="text-white">Copy UPI ID</strong> (`9866707883@ybl`).</li>
-                    <li>Open PhonePe → Search / Pay to UPI ID.</li>
-                    <li>Pay ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} &amp; copy 12-digit UTR below.</li>
+                  <ol className="space-y-1.5 text-xs text-white/70">
+                    <li className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <span>Tap <strong className="text-amber-300 font-bold">1-Tap Copy UPI ID</strong> above or scan QR Code.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <span>Open PhonePe &rarr; Select <strong className="text-white">Pay to UPI ID / Mobile</strong> &rarr; Paste <strong className="text-amber-300">9866707883@ybl</strong>.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      <span>Pay ₹{billingCycle === "yearly" ? SUBSCRIPTION_TIERS[pendingTier]?.priceYearlyINR : SUBSCRIPTION_TIERS[pendingTier]?.priceMonthlyINR} &amp; enter the 12-digit UTR / Ref No below.</span>
+                    </li>
                   </ol>
                 </div>
               </div>
