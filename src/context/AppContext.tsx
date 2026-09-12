@@ -220,31 +220,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     checkForceUpdate();
 
+    const handleIncomingNotif = (title: string, message: string, type?: string, url?: string, minVersion?: string) => {
+      if (type === "force_update" && url) {
+        const minVer = minVersion || "";
+        const shouldBlock = minVer ? isOutdated(minVer) : true;
+        if (shouldBlock) {
+          window.dispatchEvent(new CustomEvent("force_update_triggered", {
+            detail: { title, message, url, minVersion: minVer }
+          }));
+        }
+      } else {
+        sendNotification(
+          title || "New Message",
+          message || "You have a new update from Admin.",
+          "admin-broadcast"
+        );
+        window.dispatchEvent(new CustomEvent("admin_broadcast_received", {
+          detail: { title, message }
+        }));
+      }
+    };
+
     const channel = supabase
       .channel('broadcasts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
-        const { title, message, type, url, min_version } = payload.new;
-
-        if (type === "force_update" && url) {
-          // Only block if this app version is older than the required min version
-          const minVer = min_version || "";
-          const shouldBlock = minVer ? isOutdated(minVer) : true;
-          if (shouldBlock) {
-            window.dispatchEvent(new CustomEvent("force_update_triggered", {
-              detail: { title, message, url, minVersion: minVer }
-            }));
-          }
-        } else {
-          // Regular broadcast — show in-app toast + push notification
-          sendNotification(
-            title || "New Message",
-            message || "You have a new update from Admin.",
-            "admin-broadcast"
-          );
-          window.dispatchEvent(new CustomEvent("admin_broadcast_received", {
-            detail: { title, message }
-          }));
-        }
+        const { title, message, type, url, min_version } = payload.new || {};
+        handleIncomingNotif(title, message, type, url, min_version);
+      })
+      .on('broadcast', { event: 'admin_message' }, payload => {
+        const p = payload.payload || payload || {};
+        handleIncomingNotif(p.title, p.message, p.type, p.url, p.min_version);
       })
       .subscribe();
 

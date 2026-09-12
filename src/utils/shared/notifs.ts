@@ -137,10 +137,14 @@ export const sendNotification = async (
     if (registration && registration.active) {
       await registration.showNotification(title, options);
     } else {
-      new notification(title, options);
+      try {
+        new notification(title, options);
+      } catch (err) {
+        console.warn("Desktop Notification constructor notice:", err);
+      }
     }
   } catch (e) {
-    console.error(e);
+    console.error("sendNotification error:", e);
   }
 };
 export const subscribeToPushNotifications = async (): Promise<boolean> => {
