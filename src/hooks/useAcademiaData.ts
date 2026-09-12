@@ -121,13 +121,21 @@ export const useAcademiaData = (data: AcademiaData | null) => {
       );
 
       if (stored) {
-        const customClasses: Record<string, ScheduleSlot[]> =
-          JSON.parse(stored);
+        const customClasses: Record<string, any[]> = JSON.parse(stored);
         Object.keys(customClasses).forEach((dayNum) => {
           const dayKey = `Day ${dayNum}`;
           if (!mergedSchedule[dayKey]) mergedSchedule[dayKey] = {};
-          customClasses[dayNum].forEach((cls) => {
-            mergedSchedule[dayKey][cls.time] = { ...cls };
+          customClasses[dayNum].forEach((cls: any) => {
+            // Delete old slot if class time was rescheduled to a new time slot
+            if (cls.originalTime && cls.originalTime !== cls.time && mergedSchedule[dayKey][cls.originalTime]) {
+              delete mergedSchedule[dayKey][cls.originalTime];
+            }
+            if (cls.isDeleted) {
+              delete mergedSchedule[dayKey][cls.time];
+              if (cls.originalTime) delete mergedSchedule[dayKey][cls.originalTime];
+            } else {
+              mergedSchedule[dayKey][cls.time] = { ...cls };
+            }
           });
         });
       }

@@ -144,19 +144,26 @@ export const handleEditClassLogic = (
   const currentCustoms: Record<number, any[]> = stored ? JSON.parse(stored) : {};
 
   const dayList = currentCustoms[activeDay] || [];
-  const existingIdx = dayList.findIndex((c: any) => c.time === oldTimeStr);
+  const newTimeStr = `${startTime} - ${endTime}`;
+  const existingIdx = dayList.findIndex(
+    (c: any) => c.time === oldTimeStr || c.originalTime === oldTimeStr || c.time === newTimeStr
+  );
 
   const updatedItem = {
     id: existingIdx >= 0 ? dayList[existingIdx].id : `custom-${Date.now()}`,
     code: newSub,
     courseTitle: newSub,
     course: newSub,
-    time: `${startTime} - ${endTime}`,
+    time: newTimeStr,
+    originalTime: oldTimeStr || newTimeStr,
     room: newRoom,
-    faculty: existingIdx >= 0 ? dayList[existingIdx].faculty : "Faculty Rescheduled",
+    faculty: existingIdx >= 0 && dayList[existingIdx].faculty && dayList[existingIdx].faculty !== "Faculty Rescheduled"
+      ? dayList[existingIdx].faculty
+      : "Rescheduled",
     slot: newType === "lab" ? "P1" : "A1",
     type: newType,
     isCustom: true,
+    isDeleted: false,
   };
 
   let newDayList: any[];
@@ -183,23 +190,29 @@ export const handleEditClassLogic = (
 
 export const handleDeleteCustomLogic = (day: number, timeStr: string) => {
   const stored = localStorage.getItem("classivo_custom_classes");
-  if (!stored) return;
-  const currentCustoms = JSON.parse(stored);
+  const currentCustoms: Record<number, any[]> = stored ? JSON.parse(stored) : {};
 
-  if (currentCustoms[day]) {
-    currentCustoms[day] = currentCustoms[day].filter(
-      (c: any) => c.time !== timeStr,
-    );
-    localStorage.setItem(
-      "classivo_custom_classes",
-      JSON.stringify(currentCustoms),
-    );
-    window.dispatchEvent(new Event("custom_classes_updated"));
+  const dayList = currentCustoms[day] || [];
+  // Mark slot as deleted so mergeSchedule removes it from initialSchedule as well
+  const filtered = dayList.filter((c: any) => c.time !== timeStr && c.originalTime !== timeStr);
+  filtered.push({
+    id: `del-${Date.now()}`,
+    time: timeStr,
+    originalTime: timeStr,
+    isDeleted: true,
+    isCustom: true,
+  });
 
-    // Sync to Supabase in background
-    syncCustomClassesToSupabase(currentCustoms);
+  const updated = {
+    ...currentCustoms,
+    [day]: filtered,
+  };
 
-    return true;
-  }
-  return false;
+  localStorage.setItem("classivo_custom_classes", JSON.stringify(updated));
+  window.dispatchEvent(new Event("custom_classes_updated"));
+
+  // Sync to Supabase in background
+  syncCustomClassesToSupabase(updated);
+
+  return true;
 };
