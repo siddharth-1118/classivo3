@@ -7,12 +7,12 @@ self.addEventListener('push', function (event) {
     const tag = data.tag || 'classivo-notif';
 
     const options = {
-      body: data.body || '',
-      icon: data.icon || '/icon.png',
-      badge: '/icon.png',
+      body: data.body || data.message || '',
+      icon: data.icon || '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
       tag: tag,
       renotify: true,
-      requireInteraction: data.requireInteraction || false,
+      requireInteraction: true,
       vibrate: [200, 100, 200, 100, 200],
       data: { url: data.url || '/' },
       actions: data.actions || [],

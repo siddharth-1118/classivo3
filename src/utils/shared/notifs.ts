@@ -156,29 +156,26 @@ export const sendNotification = async (
 };
 export const subscribeToPushNotifications = async (): Promise<boolean> => {
   if (Capacitor.isNativePlatform()) {
-    // RUN IN BACKGROUND - DO NOT WAIT
     registerNativePushInBackground();
     return true; 
   }
 
   try {
-    // Web Logic remains
-    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-      return false;
-    }
-    // ... rest of web logic ...
-
-    // Web Browser Logic
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       return false;
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      registration = await navigator.serviceWorker.register("/sw.js");
+    }
+
+    const swReg = await navigator.serviceWorker.ready;
+    let subscription = await swReg.pushManager.getSubscription();
     
     if (!subscription) {
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLi4cPx6XEPRQ2BOhvjJO--dUXL7WK9Me0mRlGH3oTFKQL5cxeH2zvwD1rJPEiwJHfY_Ta0-7eGe3T3OeHHPIYE";
-      subscription = await registration.pushManager.subscribe({
+      subscription = await swReg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
@@ -188,7 +185,7 @@ export const subscribeToPushNotifications = async (): Promise<boolean> => {
     const userData = userDataStr ? JSON.parse(userDataStr) : null;
     const userEmail = userData?.profile?.regNo || 'unknown';
 
-    await fetch(`/api/notifications/subscribe`, {
+    const res = await fetch(`/api/notifications/subscribe`, {
       method: 'POST',
       body: JSON.stringify({
         subscription: subscription,
@@ -200,10 +197,11 @@ export const subscribeToPushNotifications = async (): Promise<boolean> => {
       }
     });
 
+    const data = await res.json();
+    console.log("Push subscription sync status:", data);
     return true;
   } catch (error) {
     console.error('Push Subscription Error:', error);
-    // On native, we still return true if permissions are granted so the toggle works
     return Capacitor.isNativePlatform();
   }
 };

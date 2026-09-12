@@ -12,7 +12,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
 import { usePathname } from "next/navigation";
-import { requestNotificationPermission, scheduleLocalTimetableNotifications } from "@/utils/shared/notifs";
+import { requestNotificationPermission, scheduleLocalTimetableNotifications, subscribeToPushNotifications } from "@/utils/shared/notifs";
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -22,57 +22,28 @@ export default function AppWrapper({ children }: { children: React.ReactNode }) 
   const { isOffline, isBackendError, setIsBackendError, backendErrorMsg, setBackendErrorMsg, showWelcome, setShowWelcome, userData, isUpdateHistoryOpen, setIsUpdateHistoryOpen } = useApp();
 
   useEffect(() => {
+    if (typeof window !== "undefined" && !Capacitor.isNativePlatform()) {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").then(async (reg) => {
+          console.log("Service Worker registered with scope:", reg.scope);
+          if ("Notification" in window && Notification.permission === "granted") {
+            subscribeToPushNotifications().catch(console.error);
+          }
+        }).catch((err) => {
+          console.warn("Service Worker registration failed:", err);
+        });
+      }
+    }
+
     requestNotificationPermission();
 
     if (userData) {
       scheduleLocalTimetableNotifications(userData);
     }
+  }, [userData]);
 
-    if (Capacitor.isNativePlatform()) {
-      let localListener: any;
-      let pushListener: any;
-
-      const setupListeners = async () => {
-        localListener = await LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
-          console.log('Local Notification tapped:', notification);
-        });
-
-        if (process.env.NEXT_PUBLIC_FCM_ENABLED === "true") {
-          pushListener = await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-            console.log('Push Notification tapped:', notification);
-          });
-        }
-      };
-
-      setupListeners();
-
-      return () => {
-        if (localListener) localListener.remove();
-        if (pushListener) pushListener.remove();
-      };
-    }
-  }, []);
   const [showSplash, setShowSplash] = useState(false);
   const [isFirstSplash, setIsFirstSplash] = useState(false);
-
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      StatusBar.setStyle({ style: Style.Dark });
-      StatusBar.setOverlaysWebView({ overlay: true });
-    }
-  }, []);
-
-useEffect(() => {
-  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-    if (!Capacitor.isNativePlatform()) {
-      navigator.serviceWorker.register("/sw.js").then((reg) => {
-        console.log("Service Worker registered with scope:", reg.scope);
-      }).catch((err) => {
-        console.warn("Service Worker registration failed:", err);
-      });
-    }
-  }
-}, []);
 
 
 
