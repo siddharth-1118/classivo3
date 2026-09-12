@@ -79,11 +79,18 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 
   const notification = (window as any).Notification;
 
-  if (notification.permission === "granted") return true;
+  if (notification.permission === "granted") {
+    subscribeToPushNotifications().catch(() => {});
+    return true;
+  }
   if (notification.permission === "denied") return false;
 
   const permission = await notification.requestPermission();
-  return permission === "granted";
+  if (permission === "granted") {
+    subscribeToPushNotifications().catch(() => {});
+    return true;
+  }
+  return false;
 };
 
 export const sendNotification = async (
@@ -170,9 +177,7 @@ export const subscribeToPushNotifications = async (): Promise<boolean> => {
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidPublicKey) return false;
-
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLi4cPx6XEPRQ2BOhvjJO--dUXL7WK9Me0mRlGH3oTFKQL5cxeH2zvwD1rJPEiwJHfY_Ta0-7eGe3T3OeHHPIYE";
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
