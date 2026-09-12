@@ -7,7 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import LoadingPage from "./LoadingPage";
 import { ConnectionSource } from "@/types";
-import { fetchWithLoadBalancer } from "@/utils/backendProxy";
+import { fetchWithLoadBalancer, warmupAcademiaBackend } from "@/utils/backendProxy";
 
 interface LoginPageProps {
   onLogin: (data: any) => void;
@@ -144,6 +144,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       initSRMSession();
     }
   };
+
+  useEffect(() => {
+    warmupAcademiaBackend();
+  }, []);
 
   // Auto-init SRM Portal session on selection
   useEffect(() => {

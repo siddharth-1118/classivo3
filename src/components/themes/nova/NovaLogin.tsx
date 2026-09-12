@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { EncryptionUtils } from "@/utils/shared/Encryption";
 import { ConnectionSource } from "@/types";
-import { fetchWithLoadBalancer } from "@/utils/backendProxy";
+import { fetchWithLoadBalancer, warmupAcademiaBackend } from "@/utils/backendProxy";
 
 const BEZIER = [0.34, 0.15, 0.16, 0.96] as const;
 
@@ -155,6 +155,10 @@ export default function NovaLogin({ onLogin }: { onLogin: (data: any) => void })
       initSRMSession();
     }
   };
+
+  useEffect(() => {
+    warmupAcademiaBackend();
+  }, []);
 
   useEffect(() => {
     if (activeTab === "srm_portal" && !srmConnectionId && !srmInitLoading) {
