@@ -218,7 +218,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const checkRecentBroadcasts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('type', 'broadcast')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (!error && data && data.length > 0) {
+          const seenStr = localStorage.getItem("classivo_seen_notifs") || "[]";
+          let seenIds: string[] = [];
+          try { seenIds = JSON.parse(seenStr); } catch {}
+
+          const unseen = data.filter((n: any) => !seenIds.includes(n.id));
+          if (unseen.length > 0) {
+            const latest = unseen[0];
+            seenIds.push(latest.id);
+            localStorage.setItem("classivo_seen_notifs", JSON.stringify(seenIds.slice(-20)));
+
+            setTimeout(() => {
+              sendNotification(
+                latest.title || "Message from Admin",
+                latest.message || "",
+                "admin-broadcast"
+              );
+              window.dispatchEvent(new CustomEvent("admin_broadcast_received", {
+                detail: { title: latest.title, message: latest.message }
+              }));
+            }, 1200);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking recent broadcasts:", err);
+      }
+    };
+
     checkForceUpdate();
+    checkRecentBroadcasts();
 
     const handleIncomingNotif = (title: string, message: string, type?: string, url?: string, minVersion?: string) => {
       if (type === "force_update" && url) {
