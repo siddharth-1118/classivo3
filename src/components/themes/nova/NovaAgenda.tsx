@@ -1012,24 +1012,38 @@ export default function NovaAgenda({
               ) : (
                 selectedOrderSlots.map((slot: any, idx: number) => {
                   const period = periodForTime(slot.time || "");
-                  const bunk = getBunkStatus(slot.code || slot.courseCode || "", slot.courseTitle || slot.name || "", subjectAttendance);
+                  const isCustom = !!slot.isCustom;
+                  const title = cap(slot.courseTitle || slot.name || slot.course || "Class");
+                  const rawCode = slot.code || slot.courseCode || "";
+                  const isCodeDuplicate = rawCode && title && rawCode.trim().toLowerCase() === title.trim().toLowerCase();
+                  const showCodeTag = rawCode && !isCodeDuplicate;
+
+                  const rawSlot = String(slot.slot || `S${idx + 1}`);
+                  const slotNum = rawSlot.replace(/\D/g, "") || rawSlot;
+                  const facultyStr = (slot.faculty === "Faculty Rescheduled" || !slot.faculty) ? "Faculty" : slot.faculty;
+
+                  const bunk = getBunkStatus(rawCode, title, subjectAttendance);
 
                   return (
                     <div
                       key={idx}
-                      className="rounded-2xl p-4 flex flex-col gap-2.5"
+                      className="rounded-2xl p-4 flex flex-col gap-2.5 transition-all relative overflow-hidden"
                       style={{
                         background: NOVA.panel,
-                        border: `1px solid ${NOVA.border}`,
-                        borderLeft: `4px solid ${period.color}`,
+                        border: `1px solid ${isCustom ? `${NOVA.orange}55` : NOVA.border}`,
+                        borderLeft: `4px solid ${isCustom ? NOVA.orange : period.color}`,
+                        boxShadow: isCustom ? `0 0 16px ${NOVA.orange}15` : "none",
                       }}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className="shrink-0 text-center w-[70px] rounded-xl py-2"
-                          style={{ background: NOVA.bg, border: `1px solid ${period.color}33` }}
+                          style={{
+                            background: NOVA.bg,
+                            border: `1px solid ${isCustom ? `${NOVA.orange}44` : `${period.color}33`}`
+                          }}
                         >
-                          <p className="text-[12px] font-black leading-none" style={{ ...mono(), color: period.color }}>
+                          <p className="text-[12px] font-black leading-none" style={{ ...mono(), color: isCustom ? NOVA.orange : period.color }}>
                             {slot.time ? slot.time.split(" - ")[0] : "—"}
                           </p>
                           {slot.time && slot.time.includes(" - ") && (
@@ -1040,21 +1054,33 @@ export default function NovaAgenda({
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="text-[9px] font-black uppercase tracking-wider" style={{ ...mono(), color: period.color }}>
-                            {period.label} · Slot {(slot.slot || String(idx + 1)).replace(/\D/g, "")}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[9px] font-black uppercase tracking-wider" style={{ ...mono(), color: isCustom ? NOVA.orange : period.color }}>
+                              {period.label} · Slot {slotNum}
+                            </p>
+                            {isCustom && (
+                              <span
+                                className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                style={{ ...mono(), background: `${NOVA.orange}22`, border: `1px solid ${NOVA.orange}55`, color: NOVA.orange }}
+                              >
+                                Rescheduled
+                              </span>
+                            )}
+                          </div>
+
                           <p className="text-[14px] font-black tracking-tight truncate mt-0.5" style={{ color: NOVA.text }}>
-                            {cap(slot.courseTitle || slot.name || slot.course || "Class")}
+                            {title}
                           </p>
+
                           <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5 truncate" style={{ color: NOVA.muted }}>
-                            {slot.room || "Lab"} · {slot.faculty || "Faculty"}
+                            {slot.room || "Room TBA"} · {facultyStr}
                           </p>
                         </div>
 
                         <div className="flex flex-col items-end gap-2 shrink-0">
-                          {(slot.code || slot.courseCode) && (
-                            <span className="text-[9px] font-black tracking-widest" style={{ ...mono(), color: period.color }}>
-                              {slot.code || slot.courseCode}
+                          {showCodeTag && (
+                            <span className="text-[9px] font-black tracking-widest" style={{ ...mono(), color: isCustom ? NOVA.orange : period.color }}>
+                              {rawCode}
                             </span>
                           )}
                           <button
