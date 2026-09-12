@@ -1,7 +1,7 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 /**
  * Sync a user's timetable and attendance to the server so the cron job can
@@ -174,7 +174,11 @@ export const subscribeToPushNotifications = async (): Promise<boolean> => {
     let subscription = await swReg.pushManager.getSubscription();
     
     if (!subscription) {
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLi4cPx6XEPRQ2BOhvjJO--dUXL7WK9Me0mRlGH3oTFKQL5cxeH2zvwD1rJPEiwJHfY_Ta0-7eGe3T3OeHHPIYE";
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+      if (!vapidPublicKey) {
+        console.warn("VAPID public key not set in environment.");
+        return false;
+      }
       subscription = await swReg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)

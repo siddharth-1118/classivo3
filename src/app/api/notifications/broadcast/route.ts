@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import webpush from "web-push";
 
-const DEFAULT_VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BLi4cPx6XEPRQ2BOhvjJO--dUXL7WK9Me0mRlGH3oTFKQL5cxeH2zvwD1rJPEiwJHfY_Ta0-7eGe3T3OeHHPIYE";
-const DEFAULT_VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "QdGsAhw3jLGYMqGC_rLNBZh2ZuA8iuym16X3UruBYK8";
+const DEFAULT_VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+const DEFAULT_VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "";
 
 try {
-  webpush.setVapidDetails(
-    "mailto:admin@classivo.com",
-    DEFAULT_VAPID_PUBLIC,
-    DEFAULT_VAPID_PRIVATE
-  );
+  if (DEFAULT_VAPID_PUBLIC && DEFAULT_VAPID_PRIVATE) {
+    webpush.setVapidDetails(
+      "mailto:admin@classivo.com",
+      DEFAULT_VAPID_PUBLIC,
+      DEFAULT_VAPID_PRIVATE
+    );
+  }
 } catch (e) {
   console.warn("VAPID setup notice:", e);
 }
@@ -20,8 +22,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { title, message, type = "broadcast", url, min_version, adminKey } = body;
 
-    const expectedKey = process.env.NEXT_PUBLIC_ADMIN_KEY || "srmnest-admin-2024";
-    if (adminKey !== expectedKey) {
+    const expectedKey = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
+    if (!expectedKey || adminKey !== expectedKey) {
       return NextResponse.json({ success: false, message: "Invalid admin key" }, { status: 403 });
     }
 

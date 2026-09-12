@@ -65,7 +65,7 @@ export default function SettingsPage({
   const [showApkModal, setShowApkModal] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/classivo.apk";
+  const apkUrl = process.env.NEXT_PUBLIC_APK_URL || "";
 
   // Diagnostic states
   const [diagnosticState, setDiagnosticState] = useState<"idle" | "testing" | "success">("idle");

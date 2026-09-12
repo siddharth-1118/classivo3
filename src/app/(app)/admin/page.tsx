@@ -6,8 +6,8 @@ import { Send, Bell, Shield, Users, RefreshCw, ArrowUp } from "lucide-react";
 import { fetchWithLoadBalancer } from "@/utils/backendProxy";
 import { APP_VERSION } from "@/utils/shared/version";
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_KEY || "srmnest-admin-2024";
-const DEFAULT_APK_URL = process.env.NEXT_PUBLIC_APK_URL || "https://nancey-pandemoniacal-candra.ngrok-free.dev/classivo.apk";
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
+const DEFAULT_APK_URL = process.env.NEXT_PUBLIC_APK_URL || "";
 
 export default function AdminPage() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);

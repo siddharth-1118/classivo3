@@ -172,8 +172,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     // --- Admin Override (Academia Only) ---
     if (activeTab === "academia") {
-      const adminPassword = process.env.NEXT_PUBLIC_ADMIN_KEY || "srmnest-admin-2024";
-      if (fullUsername === "admin@srmist.edu.in" && password === adminPassword) {
+      const adminPassword = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
+      if (adminPassword && fullUsername === "admin@srmist.edu.in" && password === adminPassword) {
         setLoading(true);
         setTimeout(() => {
           onLogin({
