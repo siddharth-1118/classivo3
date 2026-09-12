@@ -17,7 +17,11 @@ export async function fetchWithLoadBalancer(endpoint: string, options: RequestIn
 
   let urls: string[] = [];
 
-  if (isPortalEndpoint) {
+  const isInternalApi = endpoint.startsWith("/api/notifications") || endpoint.startsWith("/api/payments");
+
+  if (isInternalApi) {
+    urls = ["", defaultPortalBackend, ...rawUrls, defaultAcademiaBackend];
+  } else if (isPortalEndpoint) {
     // Portal requests hit Azure Student Portal backend
     urls = [defaultPortalBackend, ...rawUrls.filter((u) => u.includes("azurewebsites"))];
   } else {
@@ -28,7 +32,7 @@ export async function fetchWithLoadBalancer(endpoint: string, options: RequestIn
   }
 
   // Deduplicate URLs while preserving order
-  urls = Array.from(new Set(urls.filter(Boolean)));
+  urls = Array.from(new Set(urls));
 
   let lastError: any = null;
 
